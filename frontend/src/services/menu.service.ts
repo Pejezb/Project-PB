@@ -7,4 +7,11 @@ export const menuService = {
   deleteProducto: (id: string) => api.delete(`/menu/productos/${id}`),
   getCategorias: () => api.get('/menu/categorias').then((r) => r.data),
   createCategoria: (nombre: string) => api.post('/menu/categorias', { nombre }).then((r) => r.data),
+  uploadImagen: (file: File) => {
+    const form = new FormData();
+    form.append('imagen', file);
+    return api.post('/menu/upload-imagen', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }).then((r) => r.data as { url: string });
+  },
 };

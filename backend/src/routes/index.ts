@@ -7,11 +7,12 @@ import {
   loginSchema, createPedidoSchema, updateEstadoSchema, registrarPagoSchema,
   createMesaSchema, updateMesaSchema, updateEstadoMesaSchema,
   createUsuarioSchema, updateUsuarioSchema, updatePerfilSchema, changePasswordSchema,
+  addItemsSchema,
 } from '../schemas';
 import { login, refresh, logout } from '../controllers/auth.controller';
 import { getMesas, createMesa, updateMesa, updateEstadoMesa, deleteMesa } from '../controllers/mesas.controller';
-import { getPedidos, getPedidosActivos, getPedidoById, createPedido, updateEstadoPedido, registrarPago } from '../controllers/pedidos.controller';
-import { getProductos, createProducto, updateProducto, deleteProducto, getCategorias, createCategoria } from '../controllers/menu.controller';
+import { getPedidos, getPedidosActivos, getPedidoById, createPedido, updateEstadoPedido, registrarPago, addItemsToPedido } from '../controllers/pedidos.controller';
+import { getProductos, createProducto, updateProducto, deleteProducto, getCategorias, createCategoria, uploadImagen, upload } from '../controllers/menu.controller';
 import { getInventario, getAlertas, createInsumo, updateInsumo, deleteInsumo } from '../controllers/inventario.controller';
 import { getVentas, getTopProductos, getProductividad } from '../controllers/reportes.controller';
 import { getUsuarios, createUsuario, updateUsuario, deleteUsuario, getRestaurante, updateRestaurante, getDashboardStats, getPerfil, updatePerfil, changePassword } from '../controllers/usuarios.controller';
@@ -36,20 +37,22 @@ router.patch('/mesas/:id/estado', validateBody(updateEstadoMesaSchema), asyncHan
 router.delete('/mesas/:id',       roleMiddleware('ADMIN'), asyncHandler(deleteMesa));
 
 // ─── Pedidos ──────────────────────────────────────
-router.get('/pedidos',              asyncHandler(getPedidos));
-router.get('/pedidos/activos',      asyncHandler(getPedidosActivos));
-router.get('/pedidos/:id',          asyncHandler(getPedidoById));
-router.post('/pedidos',             roleMiddleware('ADMIN', 'MESERO'), validateBody(createPedidoSchema), asyncHandler(createPedido));
-router.patch('/pedidos/:id/estado', validateBody(updateEstadoSchema), asyncHandler(updateEstadoPedido));
-router.patch('/pedidos/:id/pago',   roleMiddleware('ADMIN', 'CAJERO', 'MESERO'), validateBody(registrarPagoSchema), asyncHandler(registrarPago));
+router.get('/pedidos',                asyncHandler(getPedidos));
+router.get('/pedidos/activos',        asyncHandler(getPedidosActivos));
+router.get('/pedidos/:id',            asyncHandler(getPedidoById));
+router.post('/pedidos',               roleMiddleware('ADMIN', 'MESERO'), validateBody(createPedidoSchema), asyncHandler(createPedido));
+router.patch('/pedidos/:id/estado',   validateBody(updateEstadoSchema), asyncHandler(updateEstadoPedido));
+router.patch('/pedidos/:id/pago',     roleMiddleware('ADMIN', 'CAJERO', 'MESERO'), validateBody(registrarPagoSchema), asyncHandler(registrarPago));
+router.post('/pedidos/:id/items',     roleMiddleware('ADMIN', 'MESERO'), validateBody(addItemsSchema), asyncHandler(addItemsToPedido));
 
 // ─── Menú ─────────────────────────────────────────
-router.get('/menu/productos',        asyncHandler(getProductos));
-router.post('/menu/productos',       roleMiddleware('ADMIN'), asyncHandler(createProducto));
-router.put('/menu/productos/:id',    roleMiddleware('ADMIN'), asyncHandler(updateProducto));
-router.delete('/menu/productos/:id', roleMiddleware('ADMIN'), asyncHandler(deleteProducto));
-router.get('/menu/categorias',       asyncHandler(getCategorias));
-router.post('/menu/categorias',      roleMiddleware('ADMIN'), asyncHandler(createCategoria));
+router.get('/menu/productos',             asyncHandler(getProductos));
+router.post('/menu/productos',            roleMiddleware('ADMIN'), asyncHandler(createProducto));
+router.put('/menu/productos/:id',         roleMiddleware('ADMIN'), asyncHandler(updateProducto));
+router.delete('/menu/productos/:id',      roleMiddleware('ADMIN'), asyncHandler(deleteProducto));
+router.get('/menu/categorias',            asyncHandler(getCategorias));
+router.post('/menu/categorias',           roleMiddleware('ADMIN'), asyncHandler(createCategoria));
+router.post('/menu/upload-imagen',        roleMiddleware('ADMIN'), upload.single('imagen'), asyncHandler(uploadImagen));
 
 // ─── Inventario ───────────────────────────────────
 router.get('/inventario',         asyncHandler(getInventario));
@@ -69,9 +72,9 @@ router.put('/perfil',          validateBody(updatePerfilSchema),   asyncHandler(
 router.put('/perfil/password', validateBody(changePasswordSchema), asyncHandler(changePassword));
 
 // ─── Usuarios ─────────────────────────────────────
-router.get('/usuarios',      roleMiddleware('ADMIN'), asyncHandler(getUsuarios));
-router.post('/usuarios',     roleMiddleware('ADMIN'), validateBody(createUsuarioSchema), asyncHandler(createUsuario));
-router.put('/usuarios/:id',  roleMiddleware('ADMIN'), validateBody(updateUsuarioSchema), asyncHandler(updateUsuario));
+router.get('/usuarios',        roleMiddleware('ADMIN'), asyncHandler(getUsuarios));
+router.post('/usuarios',       roleMiddleware('ADMIN'), validateBody(createUsuarioSchema), asyncHandler(createUsuario));
+router.put('/usuarios/:id',    roleMiddleware('ADMIN'), validateBody(updateUsuarioSchema), asyncHandler(updateUsuario));
 router.delete('/usuarios/:id', roleMiddleware('ADMIN'), asyncHandler(deleteUsuario));
 
 // ─── Restaurante ──────────────────────────────────

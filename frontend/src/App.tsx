@@ -19,6 +19,7 @@ import PerfilPage from './pages/perfil/PerfilPage';
 import NotificacionesPage from './pages/notificaciones/NotificacionesPage';
 import OnboardingPage from './pages/onboarding/OnboardingPage';
 import NotFoundPage from './pages/errors/NotFoundPage';
+import MeseroPage from './pages/mesero/MeseroPage';
 
 function ProtectedRoute({ children, allowedRoles }: { children: JSX.Element; allowedRoles?: Rol[] }) {
   const { user, accessToken } = useAuthStore();
@@ -45,6 +46,13 @@ export default function App() {
       <Route path="/cocina" element={
         <ProtectedRoute allowedRoles={['ADMIN', 'COCINERO']}>
           <CocinaPage />
+        </ProtectedRoute>
+      } />
+
+      {/* Vista móvil mesero (sin sidebar) */}
+      <Route path="/mesero" element={
+        <ProtectedRoute allowedRoles={['ADMIN', 'MESERO']}>
+          <MeseroPage />
         </ProtectedRoute>
       } />
 

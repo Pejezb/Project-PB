@@ -8,4 +8,6 @@ export const pedidosService = {
     api.post('/pedidos', data).then((r) => r.data),
   updateEstado: (id: string, estado: string) => api.patch(`/pedidos/${id}/estado`, { estado }).then((r) => r.data),
   registrarPago: (id: string, metodoPago: string) => api.patch(`/pedidos/${id}/pago`, { metodoPago }).then((r) => r.data),
+  addItems: (id: string, items: { productoId: string; cantidad: number }[]) =>
+    api.post(`/pedidos/${id}/items`, { items }).then((r) => r.data),
 };

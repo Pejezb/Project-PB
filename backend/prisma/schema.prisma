@@ -75,8 +75,9 @@ model Producto {
   descripcion   String?
   precio        Decimal
   imagen        String?
-  disponible    Boolean     @default(true)
-  categoriaId   String
+  disponible      Boolean     @default(true)
+  requiereCocina  Boolean     @default(true)
+  categoriaId     String
   categoria     Categoria   @relation(fields: [categoriaId], references: [id])
   restauranteId String
   restaurante   Restaurante @relation(fields: [restauranteId], references: [id])

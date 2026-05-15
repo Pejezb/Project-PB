@@ -66,3 +66,7 @@ export const changePasswordSchema = z.object({
   passwordActual: z.string().min(1),
   passwordNuevo:  z.string().min(6).max(120),
 });
+
+export const addItemsSchema = z.object({
+  items: z.array(itemPedidoSchema).min(1, 'Mínimo 1 item'),
+});

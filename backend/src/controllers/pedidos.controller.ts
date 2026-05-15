@@ -48,10 +48,59 @@ export async function getPedidosActivos(req: Request, res: Response): Promise<vo
     include: {
       mesa: { select: { numero: true } },
       mesero: { select: { nombre: true } },
-      items: { include: { producto: { select: { nombre: true } } } },
+      items: {
+        include: {
+          producto: {
+            select: { nombre: true, imagen: true, requiereCocina: true },
+          },
+        },
+      },
     },
   });
   res.json(pedidos);
+}
+
+export async function addItemsToPedido(req: Request, res: Response): Promise<void> {
+  const { id } = req.params;
+  const { items } = req.body;
+
+  if (!items?.length) { res.status(400).json({ error: 'Items requeridos' }); return; }
+
+  const pedido = await prisma.pedido.findFirst({
+    where: { id, restauranteId: req.restauranteId! },
+  });
+  if (!pedido) { res.status(404).json({ error: 'Pedido no encontrado' }); return; }
+  if (['PAGADO', 'CANCELADO'].includes(pedido.estado)) {
+    res.status(400).json({ error: 'No se pueden añadir items a un pedido finalizado' });
+    return;
+  }
+
+  const productos = await prisma.producto.findMany({
+    where: { id: { in: items.map((i: any) => i.productoId) }, restauranteId: req.restauranteId! },
+  });
+
+  const itemsData = items.map((item: any) => {
+    const prod = productos.find((p) => p.id === item.productoId);
+    if (!prod) throw new Error(`Producto ${item.productoId} no encontrado`);
+    const precio = Number(prod.precio);
+    return { productoId: item.productoId, cantidad: item.cantidad, precio, subtotal: precio * item.cantidad };
+  });
+
+  const extraTotal = itemsData.reduce((s: number, i: any) => s + i.subtotal, 0);
+
+  const updated = await prisma.$transaction(async (tx) => {
+    await tx.itemPedido.createMany({ data: itemsData.map((i: any) => ({ ...i, pedidoId: id })) });
+    return tx.pedido.update({
+      where: { id },
+      data: { total: { increment: extraTotal } },
+      include: {
+        mesa: { select: { numero: true } },
+        items: { include: { producto: { select: { nombre: true, imagen: true, requiereCocina: true } } } },
+      },
+    });
+  });
+
+  res.json(updated);
 }
 
 export async function getPedidoById(req: Request, res: Response): Promise<void> {

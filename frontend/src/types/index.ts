@@ -46,6 +46,7 @@ export interface Producto {
   precio: number;
   imagen?: string;
   disponible: boolean;
+  requiereCocina: boolean;
   categoriaId: string;
   categoria?: Categoria;
 }
@@ -66,7 +67,7 @@ export interface Insumo {
 export interface ItemPedido {
   id: string;
   productoId: string;
-  producto: { nombre: string; precio?: number };
+  producto: { nombre: string; precio?: number; imagen?: string; requiereCocina?: boolean };
   cantidad: number;
   precio: number;
   subtotal: number;
