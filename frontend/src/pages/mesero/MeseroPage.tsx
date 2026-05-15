@@ -5,7 +5,8 @@
  */
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, ShoppingCart, Plus, Minus, CheckCircle, Utensils } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, ShoppingCart, Plus, Minus, CheckCircle, Utensils, LayoutDashboard } from 'lucide-react';
 import { mesasService } from '../../services/mesas.service';
 import { menuService } from '../../services/menu.service';
 import { pedidosService } from '../../services/pedidos.service';
@@ -17,6 +18,7 @@ type Step = 'mesas' | 'menu' | 'confirmar';
 
 export default function MeseroPage() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [step, setStep]         = useState<Step>('mesas');
   const [mesaSel, setMesaSel]   = useState<Mesa | null>(null);
   const [catFiltro, setCatFiltro] = useState('todas');
@@ -119,8 +121,15 @@ export default function MeseroPage() {
       <div className="min-h-screen bg-background flex flex-col">
         <header className="sticky top-0 bg-sidebar-bg border-b border-border px-4 py-3 flex items-center gap-3 z-10">
           <Utensils size={20} className="text-primary" />
-          <span className="font-bold text-foreground text-lg">RestaurantOS</span>
-          <span className="text-muted-foreground text-sm ml-1">— Mesero</span>
+          <span className="font-bold text-foreground text-lg flex-1">RestaurantOS</span>
+          <span className="text-muted-foreground text-sm">Mesero</span>
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-muted-foreground hover:text-foreground text-sm transition-colors"
+          >
+            <LayoutDashboard size={15} />
+            <span>Panel</span>
+          </button>
         </header>
 
         <main className="flex-1 p-4 space-y-5">

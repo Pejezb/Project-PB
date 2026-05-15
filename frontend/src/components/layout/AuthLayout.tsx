@@ -41,9 +41,9 @@ export function AuthLayout() {
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       <Sidebar />
-      {/* Spacer que empuja el contenido cuando el sidebar está abierto */}
+      {/* Spacer desktop: empuja el contenido cuando el sidebar está abierto */}
       <div
-        className={`flex-shrink-0 transition-all duration-300 ${sidebarOpen ? 'w-64' : 'w-0'}`}
+        className={`hidden lg:block flex-shrink-0 transition-all duration-300 ${sidebarOpen ? 'w-64' : 'w-0'}`}
       />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <Header title={title} />
