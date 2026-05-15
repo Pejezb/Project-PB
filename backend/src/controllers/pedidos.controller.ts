@@ -83,16 +83,31 @@ export async function addItemsToPedido(req: Request, res: Response): Promise<voi
     const prod = productos.find((p) => p.id === item.productoId);
     if (!prod) throw new Error(`Producto ${item.productoId} no encontrado`);
     const precio = Number(prod.precio);
-    return { productoId: item.productoId, cantidad: item.cantidad, precio, subtotal: precio * item.cantidad };
+    return { productoId: item.productoId, cantidad: item.cantidad, precio, subtotal: precio * item.cantidad, requiereCocina: prod.requiereCocina };
   });
 
   const extraTotal = itemsData.reduce((s: number, i: any) => s + i.subtotal, 0);
 
+  // Si algún ítem nuevo va a cocina → el pedido vuelve a EN_COCINA
+  const algunoRequiereCocina = itemsData.some((i: any) => i.requiereCocina);
+  const nuevoEstado = algunoRequiereCocina ? 'EN_COCINA' : undefined;
+
   const updated = await prisma.$transaction(async (tx) => {
-    await tx.itemPedido.createMany({ data: itemsData.map((i: any) => ({ ...i, pedidoId: id })) });
+    await tx.itemPedido.createMany({
+      data: itemsData.map((i: any) => ({
+        pedidoId: id,
+        productoId: i.productoId,
+        cantidad: i.cantidad,
+        precio: i.precio,
+        subtotal: i.subtotal,
+      })),
+    });
     return tx.pedido.update({
       where: { id },
-      data: { total: { increment: extraTotal } },
+      data: {
+        total: { increment: extraTotal },
+        ...(nuevoEstado && { estado: nuevoEstado }),
+      },
       include: {
         mesa: { select: { numero: true } },
         items: { include: { producto: { select: { nombre: true, imagen: true, requiereCocina: true } } } },
@@ -172,11 +187,11 @@ export async function createPedido(req: Request, res: Response): Promise<void> {
  * Cualquier estado puede ir a CANCELADO (excepto PAGADO).
  */
 const TRANSICIONES_VALIDAS: Record<EstadoPedido, EstadoPedido[]> = {
-  PENDIENTE:      ['EN_COCINA', 'CANCELADO'],
-  EN_COCINA:      ['EN_PREPARACION', 'CANCELADO'],
+  PENDIENTE:      ['EN_COCINA', 'LISTO', 'CANCELADO'],
+  EN_COCINA:      ['LISTO', 'CANCELADO'],
   EN_PREPARACION: ['LISTO', 'CANCELADO'],
   LISTO:          ['ENTREGADO', 'CANCELADO'],
-  ENTREGADO:      ['PAGADO'],
+  ENTREGADO:      ['PAGADO', 'EN_COCINA'],
   PAGADO:         [],
   CANCELADO:      [],
 };
