@@ -46,7 +46,7 @@ export default function UsuariosPage() {
 
   const { data: usuarios = [], isLoading } = useQuery({
     queryKey: ['usuarios'],
-    queryFn: usuariosService.getAll,
+    queryFn: () => usuariosService.getAll(),
   });
 
   const { data: sucursales = [] } = useQuery({
