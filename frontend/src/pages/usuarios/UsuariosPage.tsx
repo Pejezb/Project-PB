@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, UserCircle, Trash2, Pencil, KeyRound } from 'lucide-react';
+import { Plus, UserCircle, Trash2, Pencil, KeyRound, Eye } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { usuariosService } from '../../services/usuarios.service';
@@ -35,6 +35,13 @@ const ROL_VARIANTS: Record<Rol, 'success' | 'warning' | 'info'> = {
   COCINERO: 'warning',
 };
 
+const getInitials = (name: string) => {
+  const parts = name.trim().split(' ').filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase();
+};
+
 export default function UsuariosPage() {
   const qc = useQueryClient();
   const { user } = useAuthStore();
@@ -43,12 +50,57 @@ export default function UsuariosPage() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Usuario | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sucursalFilter, setSucursalFilter] = useState('TODAS');
+  const [rolFilter, setRolFilter] = useState('TODOS');
+  const [estadoFilter, setEstadoFilter] = useState('TODOS');
+
 
   // queryKey incluye sucursalId para que DUENO y ADMIN nunca compartan cache
   const { data: usuarios = [], isLoading } = useQuery({
     queryKey: ['usuarios', user?.sucursalId ?? 'all'],
     queryFn: () => usuariosService.getAll(),
   });
+
+  const sucursalesDisponibles = useMemo(() => {
+    const map = new Map<string, string>();
+
+    usuarios.forEach((usuario) => {
+      if (usuario.sucursal?.id && usuario.sucursal?.nombre) {
+        map.set(usuario.sucursal.id, usuario.sucursal.nombre);
+      }
+    });
+
+    return Array.from(map.entries()).map(([id, nombre]) => ({ id, nombre }));
+  }, [usuarios]);
+
+  const usuariosFiltrados = useMemo(() => {
+    const search = searchTerm.trim().toLowerCase();
+
+    return usuarios.filter((usuario) => {
+      const matchesSearch =
+        !search ||
+        usuario.nombre.toLowerCase().includes(search) ||
+        usuario.email.toLowerCase().includes(search) ||
+        usuario.sucursal?.nombre?.toLowerCase().includes(search);
+
+      const matchesSucursal =
+        sucursalFilter === 'TODAS' ||
+        usuario.sucursalId === sucursalFilter ||
+        usuario.sucursal?.id === sucursalFilter;
+
+      const matchesRol =
+        rolFilter === 'TODOS' ||
+        usuario.rol === rolFilter;
+
+      const matchesEstado =
+        estadoFilter === 'TODOS' ||
+        (estadoFilter === 'ACTIVO' && usuario.activo) ||
+        (estadoFilter === 'INACTIVO' && !usuario.activo);
+
+      return matchesSearch && matchesSucursal && matchesRol && matchesEstado;
+    });
+  }, [usuarios, searchTerm, sucursalFilter, rolFilter, estadoFilter]);
 
   const { data: sucursales = [] } = useQuery({
     queryKey: ['sucursales'],
@@ -138,48 +190,207 @@ export default function UsuariosPage() {
           <p className="text-sm mt-1">Crea el primer usuario para tu equipo</p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-border shadow-card overflow-hidden">
-          <div className="divide-y divide-border">
-            {usuarios.map((u) => (
-              <div key={u.id} className="flex items-center justify-between gap-4 px-5 py-4">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary flex-shrink-0">
-                    {u.nombre.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-medium text-text truncate">{u.nombre}</p>
-                    <p className="text-xs text-text-muted truncate">{u.email}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 flex-shrink-0">
-                  {isDueno && u.sucursal && (
-                    <span className="text-xs text-text-muted hidden sm:block">{u.sucursal.nombre}</span>
-                  )}
-                  <Badge variant={ROL_VARIANTS[u.rol as Rol] ?? 'neutral'}>
-                    {ROL_LABELS[u.rol as Rol] ?? u.rol}
-                  </Badge>
-                  <div className="flex gap-1">
-                    <button
-                      onClick={() => openEdit(u)}
-                      className="p-1.5 rounded-lg hover:bg-background text-text-muted hover:text-text transition-colors"
-                      title="Editar"
-                    >
-                      <Pencil size={15} />
-                    </button>
-                    <button
-                      onClick={() => { if (confirm(`¿Eliminar a ${u.nombre}?`)) eliminar.mutate(u.id); }}
-                      className="p-1.5 rounded-lg hover:bg-red-50 text-text-muted hover:text-error transition-colors"
-                      title="Eliminar"
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  </div>
-                </div>
+        <>
+          <div className="bg-white rounded-xl border border-border shadow-card p-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">
+                  Buscar
+                </label>
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Nombre, email o sucursal"
+                  className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                />
               </div>
-            ))}
+
+              {isDueno && (
+                <div>
+                  <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">
+                    Sucursal
+                  </label>
+                  <select
+                    value={sucursalFilter}
+                    onChange={(e) => setSucursalFilter(e.target.value)}
+                    className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  >
+                    <option value="TODAS">Todas las sucursales</option>
+                    {sucursalesDisponibles.map((sucursal) => (
+                      <option key={sucursal.id} value={sucursal.id}>
+                        {sucursal.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">
+                  Rol
+                </label>
+                <select
+                  value={rolFilter}
+                  onChange={(e) => setRolFilter(e.target.value)}
+                  className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                >
+                  <option value="TODOS">Todos los roles</option>
+                  <option value="ADMIN">Administrador</option>
+                  <option value="MESERO">Mesero</option>
+                  <option value="COCINERO">Cocinero</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">
+                  Estado
+                </label>
+                <select
+                  value={estadoFilter}
+                  onChange={(e) => setEstadoFilter(e.target.value)}
+                  className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                >
+                  <option value="TODOS">Todos los estados</option>
+                  <option value="ACTIVO">Activos</option>
+                  <option value="INACTIVO">Inactivos</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between mt-4 pt-3 border-t border-border">
+              <p className="text-sm text-text-muted">
+                Mostrando <span className="font-semibold text-text">{usuariosFiltrados.length}</span> de{' '}
+                <span className="font-semibold text-text">{usuarios.length}</span> usuarios
+              </p>
+
+              {(searchTerm || sucursalFilter !== 'TODAS' || rolFilter !== 'TODOS' || estadoFilter !== 'TODOS') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchTerm('');
+                    setSucursalFilter('TODAS');
+                    setRolFilter('TODOS');
+                    setEstadoFilter('TODOS');
+                  }}
+                  className="inline-flex items-center justify-center rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-dark transition-colors"
+                >
+                  Limpiar filtros
+                </button>
+              )}
+            </div>
           </div>
-        </div>
+
+          <div className="bg-white rounded-xl border border-border shadow-card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[900px]">
+                <thead className="bg-background border-b border-border">
+                  <tr>
+                    <th className="px-5 py-3 text-left text-xs font-bold text-text-muted uppercase tracking-wide">
+                      Name
+                    </th>
+                    <th className="px-5 py-3 text-left text-xs font-bold text-text-muted uppercase tracking-wide">
+                      Role
+                    </th>
+                    <th className="px-5 py-3 text-left text-xs font-bold text-text-muted uppercase tracking-wide">
+                      Email
+                    </th>
+                    {isDueno && (
+                      <th className="px-5 py-3 text-left text-xs font-bold text-text-muted uppercase tracking-wide">
+                        Sucursal
+                      </th>
+                    )}
+                    <th className="px-5 py-3 text-left text-xs font-bold text-text-muted uppercase tracking-wide">
+                      Status
+                    </th>
+                    <th className="px-5 py-3 text-left text-xs font-bold text-text-muted uppercase tracking-wide">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody className="divide-y divide-border">
+                  {usuariosFiltrados.map((u) => (
+                    <tr key={u.id} className="hover:bg-background/70 transition-colors">
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center text-sm font-semibold flex-shrink-0">
+                            {getInitials(u.nombre)}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-medium text-text truncate">{u.nombre}</p>
+                            <p className="text-xs text-text-muted truncate">ID: {u.id.slice(0, 8)}</p>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="px-5 py-4">
+                        <Badge variant={ROL_VARIANTS[u.rol as Rol] ?? 'neutral'}>
+                          {ROL_LABELS[u.rol as Rol] ?? u.rol}
+                        </Badge>
+                      </td>
+
+                      <td className="px-5 py-4 text-sm text-text-muted">
+                        {u.email}
+                      </td>
+
+                      {isDueno && (
+                        <td className="px-5 py-4 text-sm text-text-muted">
+                          {u.sucursal?.nombre ?? 'Sin sucursal'}
+                        </td>
+                      )}
+
+                      <td className="px-5 py-4">
+                        <Badge variant={u.activo ? 'success' : 'neutral'}>
+                          {u.activo ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </td>
+
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            className="p-1.5 rounded-lg hover:bg-green-50 text-primary hover:text-primary-dark transition-colors"
+                            title="Ver usuario"
+                            onClick={() => toast(`${u.nombre} - ${u.email}`)}
+                          >
+                            <Eye size={16} />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => openEdit(u)}
+                            className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-600 hover:text-blue-700 transition-colors"
+                            title="Editar usuario"
+                          >
+                            <Pencil size={16} />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => { if (confirm(`¿Eliminar a ${u.nombre}?`)) eliminar.mutate(u.id); }}
+                            className="p-1.5 rounded-lg hover:bg-red-50 text-text-muted hover:text-error transition-colors"
+                            title="Eliminar usuario"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {usuariosFiltrados.length === 0 && (
+              <div className="px-5 py-10 text-center">
+                <p className="text-sm font-medium text-text">No se encontraron usuarios</p>
+                <p className="text-sm text-text-muted mt-1">
+                  Intenta cambiar o limpiar los filtros aplicados.
+                </p>
+              </div>
+            )}
+          </div>
+        </>
       )}
 
       {/* Modal */}
