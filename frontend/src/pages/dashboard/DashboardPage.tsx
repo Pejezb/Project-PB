@@ -49,7 +49,6 @@ export default function DashboardPage() {
     );
   }
 
-  // ── Vista Dueño: resumen de todas las sucursales ──────────────────────────
   if (isDueno && data?.sucursales) {
     const total = data.sucursales.reduce((s: number, x: any) => s + x.ventasHoy, 0);
     const abiertas = data.sucursales.filter((s: any) => s.abierto).length;
@@ -95,7 +94,6 @@ export default function DashboardPage() {
     );
   }
 
-  // ── Vista Admin: resumen de su sucursal ──────────────────────────────────
   return (
     <div className="space-y-6">
       <div>
@@ -103,16 +101,34 @@ export default function DashboardPage() {
         <p className="text-sm text-text-muted">{user?.sucursal?.nombre}</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard label="Ventas hoy" value={formatCurrency(data?.ventasHoy ?? 0)} icon={TrendingUp} />
         <StatCard label="Pedidos hoy" value={data?.pedidosHoy ?? 0} icon={ShoppingBag} />
         <StatCard label="Mesas ocupadas" value={`${data?.mesasOcupadas ?? 0} / ${data?.totalMesas ?? 0}`} icon={Users} />
-        <StatCard label="Pedidos activos" value={data?.pedidosActivos?.length ?? 0} icon={ShoppingBag} color="text-warning" />
       </div>
 
-      {/* Placeholder para gráficas — el equipo las implementa */}
-      <div className="bg-white rounded-xl border border-border shadow-card p-8 flex items-center justify-center text-text-muted">
-        <p className="text-sm">📊 Aquí irán los gráficos de ventas</p>
+      <div className="bg-white rounded-xl border border-border shadow-card overflow-hidden">
+        <div className="px-5 py-4 border-b border-border">
+          <h3 className="font-semibold text-text">Top ventas del día</h3>
+        </div>
+        <div className="divide-y divide-border">
+          {(data?.topProductos ?? []).length === 0 ? (
+            <p className="px-5 py-6 text-sm text-text-muted text-center">Sin ventas registradas hoy</p>
+          ) : (
+            (data?.topProductos ?? []).map((producto: any, index: number) => (
+              <div key={producto.id} className="px-5 py-4 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-bold text-text-muted w-5">#{index + 1}</span>
+                  <p className="font-medium text-text">{producto.nombre}</p>
+                </div>
+                <div className="flex items-center gap-6 text-sm">
+                  <span className="text-text-muted">{producto.cantidad} vendidos</span>
+                  <span className="font-semibold text-text">{formatCurrency(producto.total)}</span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );

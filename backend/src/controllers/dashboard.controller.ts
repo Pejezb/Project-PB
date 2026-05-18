@@ -3,7 +3,6 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// GET /dashboard — resumen para el dueño (todas las sucursales)
 export async function getDashboardDueno(req: Request, res: Response): Promise<void> {
   const duenoId = req.user!.userId;
 
@@ -38,15 +37,13 @@ export async function getDashboardDueno(req: Request, res: Response): Promise<vo
 
   res.json({ sucursales: resumen });
 }
-
-// GET /dashboard/sucursal/:id — resumen para el admin de una sucursal
 export async function getDashboardSucursal(req: Request, res: Response): Promise<void> {
   const sucursalId = req.user!.rol === 'DUENO' ? req.params.id : req.user!.sucursalId!;
 
   const hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
 
-  const [ventasHoy, pedidosHoy, mesasOcupadas, totalMesas, pedidosActivos] = await Promise.all([
+  const [ventasHoy, pedidosHoy, mesasOcupadas, totalMesas, pedidosActivos, topProductosRaw] = await Promise.all([
     prisma.pedido.aggregate({
       where: { sucursalId, estado: 'PAGADO', creadoEn: { gte: hoy } },
       _sum: { total: true },
@@ -60,7 +57,30 @@ export async function getDashboardSucursal(req: Request, res: Response): Promise
       take: 5,
       include: { mesa: { select: { numero: true } } },
     }),
+  
+    prisma.itemPedido.groupBy({
+      by: ['productoId'],
+      where: { pedido: { sucursalId, estado: 'PAGADO', creadoEn: { gte: hoy } } },
+      _sum: { cantidad: true, precio: true },
+      orderBy: { _sum: { precio: 'desc' } },
+      take: 5,
+    }),
   ]);
+
+  const topProductos = await Promise.all(
+    topProductosRaw.map(async (item) => {
+      const producto = await prisma.producto.findUnique({
+        where: { id: item.productoId },
+        select: { id: true, nombre: true },
+      });
+      return {
+        id: producto!.id,
+        nombre: producto!.nombre,
+        cantidad: item._sum.cantidad ?? 0,
+        total: Number(item._sum.precio ?? 0),
+      };
+    })
+  );
 
   res.json({
     ventasHoy: Number(ventasHoy._sum.total ?? 0),
@@ -68,5 +88,6 @@ export async function getDashboardSucursal(req: Request, res: Response): Promise
     mesasOcupadas,
     totalMesas,
     pedidosActivos,
+    topProductos,
   });
 }

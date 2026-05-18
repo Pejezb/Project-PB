@@ -199,6 +199,74 @@ async function main() {
 
     console.log(`🍗 ${productos.length} productos creados`);
 
+    const mesero = usuariosCreados.find(u => u.rol === Rol.MESERO)!;
+
+    const pedidosDemo = [
+    {
+        mesaId: 'mesa-1',
+        items: [
+        { productoId: 'p-entero', cantidad: 1, precio: 55 },
+        { productoId: 'p-inca-g', cantidad: 2, precio: 10 },
+        ],
+    },
+    {
+        mesaId: 'mesa-2',
+        items: [
+        { productoId: 'p-cfamiliar', cantidad: 1, precio: 65 },
+        { productoId: 'p-papas', cantidad: 2, precio: 8 },
+        { productoId: 'p-chicha', cantidad: 3, precio: 6 },
+        ],
+    },
+    {
+        mesaId: 'mesa-3',
+        items: [
+        { productoId: 'p-medio', cantidad: 2, precio: 29 },
+        { productoId: 'p-ensalada', cantidad: 1, precio: 5 },
+        { productoId: 'p-inca-p', cantidad: 2, precio: 5 },
+        ],
+    },
+    {
+        mesaId: 'mesa-4',
+        items: [
+        { productoId: 'p-cduo', cantidad: 2, precio: 42 },
+        { productoId: 'p-agua', cantidad: 2, precio: 3 },
+        ],
+    },
+    {
+        mesaId: 'mesa-5',
+        items: [
+        { productoId: 'p-cuarto', cantidad: 4, precio: 16 },
+        { productoId: 'p-yuca', cantidad: 2, precio: 8 },
+        { productoId: 'p-aji', cantidad: 2, precio: 2 },
+        ],
+    },
+    ];
+
+    for (const p of pedidosDemo) {
+    const total = p.items.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
+
+    await prisma.pedido.create({
+        data: {
+        mesaId: p.mesaId,
+        meseroId: mesero.id,
+        sucursalId: sucursal.id,
+        tipo: 'EN_MESA',
+        estado: 'PAGADO',
+        pagado: true,
+        total,
+        items: {
+            create: p.items.map(i => ({
+            productoId: i.productoId,
+            cantidad: i.cantidad,
+            precio: i.precio,
+            subtotal: i.precio * i.cantidad,
+            })),
+        },
+        },
+    });
+    }
+
+    console.log('🧾 Pedidos de prueba creados');
     console.log('\n🎉 SEED COMPLETADO\n');
 
     console.log('ACCESOS:');
