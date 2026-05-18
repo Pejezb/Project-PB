@@ -96,9 +96,60 @@ export default function PedidosPage() {
     }
   );
 
-  const imprimirPedido = () => {
-    window.print();
-  };
+
+   const imprimirPedido = () => {
+    if (!pedidoSeleccionado) return;
+
+    const total = calcularTotal(pedidoSeleccionado.productos).toFixed(2);
+
+    const productosHTML = pedidoSeleccionado.productos
+        .map(
+        (p) => `
+        <tr>
+            <td style="padding:6px 0">${p.nombre}</td>
+            <td style="text-align:center;padding:6px 0">${p.cantidad}</td>
+            <td style="text-align:right;padding:6px 0">S/ ${(p.precio * p.cantidad).toFixed(2)}</td>
+        </tr>`
+        )
+        .join('');
+
+    const ventana = window.open('', '_blank', 'width=400,height=600');
+    if (!ventana) return;
+
+    ventana.document.write(`
+        <html>
+        <head><title>Pedido #${pedidoSeleccionado.id}</title></head>
+        <body style="font-family:sans-serif;padding:32px">
+            <h2>Pedido #${pedidoSeleccionado.id}</h2>
+            <hr/>
+            <p><strong>Mesa:</strong> Mesa ${pedidoSeleccionado.mesa}</p>
+            <p><strong>Usuario:</strong> ${pedidoSeleccionado.usuario}</p>
+            <p><strong>Estado:</strong> ${pedidoSeleccionado.estado}</p>
+            <hr/>
+            <table style="width:100%;border-collapse:collapse">
+            <thead>
+                <tr style="border-bottom:1px solid #000">
+                <th style="text-align:left;padding:6px 0">Producto</th>
+                <th style="text-align:center;padding:6px 0">Cant.</th>
+                <th style="text-align:right;padding:6px 0">Precio</th>
+                </tr>
+            </thead>
+            <tbody>${productosHTML}</tbody>
+            </table>
+            <hr/>
+            <div style="display:flex;justify-content:space-between;font-weight:bold;font-size:18px">
+            <span>TOTAL</span>
+            <span>S/ ${total}</span>
+            </div>
+        </body>
+        </html>
+    `);
+
+    ventana.document.close();
+    ventana.focus();
+    ventana.print();
+    ventana.close();
+    };
 
   return (
     <div className="p-6 bg-background min-h-screen">
