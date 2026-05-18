@@ -13,6 +13,7 @@ import AsistenciasPage from './pages/administrador/asistencias/AsistenciasPages'
 import MenuPage from './pages/administrador/menu/MenuPage';
 import ReportesPage from './pages/administrador/reportes/ReportesPage';
 import MesasPage from './pages/administrador/Mesas/MesasPage';
+import PedidosPage from './pages/administrador/pedidos/PedidosPage';
 
 const qc = new QueryClient({
   defaultOptions: {
@@ -103,6 +104,7 @@ export default function App() {
             <Route path="/menu" element={<MenuPage />} />
             <Route path="/reportes" element={<ReportesPage />} />
             <Route path="/mesas" element={<MesasPage />} />
+            <Route path="/pedidos" element={<PedidosPage />} />
             {/* El equipo puede agregar más rutas aquí:
             <Route path="/mesas"    element={<MesasPage />} />
             <Route path="/pedidos"  element={<PedidosPage />} />
