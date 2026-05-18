@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, UserCircle, Trash2, Pencil, KeyRound, Eye } from 'lucide-react';
+import { Plus, UserCircle, Pencil, KeyRound, Eye } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { usuariosService } from '../../services/usuarios.service';
@@ -17,10 +17,11 @@ interface FormState {
   password: string;
   rol: Rol;
   sucursalId: string;
+  activo: boolean;
 }
 
 const emptyForm: FormState = {
-  nombre: '', email: '', password: '', rol: 'MESERO', sucursalId: '',
+  nombre: '', email: '', password: '', rol: 'MESERO', sucursalId: '', activo: true,
 };
 
 const ROL_LABELS: Record<Rol, string> = {
@@ -42,6 +43,21 @@ const getInitials = (name: string) => {
   return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase();
 };
 
+const formatDate = (value?: string) => {
+  if (!value) return 'Sin fecha';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Sin fecha';
+
+  return date.toLocaleString('es-PE', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
 export default function UsuariosPage() {
   const qc = useQueryClient();
   const { user } = useAuthStore();
@@ -50,6 +66,7 @@ export default function UsuariosPage() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Usuario | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [isModalEditing, setIsModalEditing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [sucursalFilter, setSucursalFilter] = useState('TODAS');
   const [rolFilter, setRolFilter] = useState('TODOS');
@@ -61,18 +78,6 @@ export default function UsuariosPage() {
     queryKey: ['usuarios', user?.sucursalId ?? 'all'],
     queryFn: () => usuariosService.getAll(),
   });
-
-  const sucursalesDisponibles = useMemo(() => {
-    const map = new Map<string, string>();
-
-    usuarios.forEach((usuario) => {
-      if (usuario.sucursal?.id && usuario.sucursal?.nombre) {
-        map.set(usuario.sucursal.id, usuario.sucursal.nombre);
-      }
-    });
-
-    return Array.from(map.entries()).map(([id, nombre]) => ({ id, nombre }));
-  }, [usuarios]);
 
   const usuariosFiltrados = useMemo(() => {
     const search = searchTerm.trim().toLowerCase();
@@ -108,6 +113,13 @@ export default function UsuariosPage() {
     enabled: isDueno,
   });
 
+  const sucursalesDisponibles = useMemo(() => {
+    return sucursales.map((sucursal) => ({
+      id: sucursal.id,
+      nombre: sucursal.nombre,
+    }));
+  }, [sucursales]);
+
   const crear = useMutation({
     mutationFn: () => usuariosService.create(form),
     onSuccess: () => {
@@ -122,6 +134,7 @@ export default function UsuariosPage() {
     mutationFn: () => usuariosService.update(editing!.id, {
       nombre: form.nombre,
       rol: form.rol,
+      activo: form.activo,
       sucursalId: form.sucursalId || undefined,
       ...(form.password ? { password: form.password } : {}),
     }),
@@ -133,39 +146,62 @@ export default function UsuariosPage() {
     onError: (e: any) => toast.error(e?.response?.data?.error ?? 'Error al actualizar'),
   });
 
-  const eliminar = useMutation({
+  /*const eliminar = useMutation({
     mutationFn: (id: string) => usuariosService.delete(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['usuarios', user?.sucursalId ?? 'all'] });
       toast.success('Usuario eliminado');
     },
     onError: (e: any) => toast.error(e?.response?.data?.error ?? 'Error al eliminar'),
-  });
+  });*/
 
   const openNew = () => {
     setEditing(null);
+    setIsModalEditing(true);
     setForm({ ...emptyForm, sucursalId: isDueno ? '' : (user?.sucursalId ?? '') });
     setShowModal(true);
   };
 
   const openEdit = (u: Usuario) => {
     setEditing(u);
+    setIsModalEditing(true);
     setForm({
       nombre: u.nombre,
       email: u.email,
       password: '',
       rol: u.rol as Rol,
-      sucursalId: u.sucursalId ?? '',
+      sucursalId: u.sucursalId ?? u.sucursal?.id ?? '',
+      activo: u.activo,
     });
     setShowModal(true);
   };
 
-  const closeModal = () => { setShowModal(false); setEditing(null); setForm(emptyForm); };
+  const openView = (u: Usuario) => {
+    setEditing(u);
+    setIsModalEditing(false);
+    setForm({
+      nombre: u.nombre,
+      email: u.email,
+      password: '',
+      rol: u.rol as Rol,
+      sucursalId: u.sucursalId ?? u.sucursal?.id ?? '',
+      activo: u.activo,
+    });
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setEditing(null);
+    setIsModalEditing(false);
+    setForm(emptyForm);
+  };
   const handleChange = (k: keyof FormState, v: string) => setForm(f => ({ ...f, [k]: v }));
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     editing ? actualizar.mutate() : crear.mutate();
   };
+  const isReadOnly = Boolean(editing && !isModalEditing);
 
   return (
     <div className="space-y-5">
@@ -287,10 +323,10 @@ export default function UsuariosPage() {
                 <thead className="bg-background border-b border-border">
                   <tr>
                     <th className="px-5 py-3 text-left text-xs font-bold text-text-muted uppercase tracking-wide">
-                      Name
+                      Nombre
                     </th>
                     <th className="px-5 py-3 text-left text-xs font-bold text-text-muted uppercase tracking-wide">
-                      Role
+                      Rol
                     </th>
                     <th className="px-5 py-3 text-left text-xs font-bold text-text-muted uppercase tracking-wide">
                       Email
@@ -301,10 +337,10 @@ export default function UsuariosPage() {
                       </th>
                     )}
                     <th className="px-5 py-3 text-left text-xs font-bold text-text-muted uppercase tracking-wide">
-                      Status
+                      Estado
                     </th>
                     <th className="px-5 py-3 text-left text-xs font-bold text-text-muted uppercase tracking-wide">
-                      Actions
+                      Acción
                     </th>
                   </tr>
                 </thead>
@@ -342,7 +378,7 @@ export default function UsuariosPage() {
 
                       <td className="px-5 py-4">
                         <Badge variant={u.activo ? 'success' : 'neutral'}>
-                          {u.activo ? 'Active' : 'Inactive'}
+                          {u.activo ? 'Activo' : 'Inactivo'}
                         </Badge>
                       </td>
 
@@ -352,27 +388,9 @@ export default function UsuariosPage() {
                             type="button"
                             className="p-1.5 rounded-lg hover:bg-green-50 text-primary hover:text-primary-dark transition-colors"
                             title="Ver usuario"
-                            onClick={() => toast(`${u.nombre} - ${u.email}`)}
+                            onClick={() => openView(u)}
                           >
                             <Eye size={16} />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => openEdit(u)}
-                            className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-600 hover:text-blue-700 transition-colors"
-                            title="Editar usuario"
-                          >
-                            <Pencil size={16} />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => { if (confirm(`¿Eliminar a ${u.nombre}?`)) eliminar.mutate(u.id); }}
-                            className="p-1.5 rounded-lg hover:bg-red-50 text-text-muted hover:text-error transition-colors"
-                            title="Eliminar usuario"
-                          >
-                            <Trash2 size={16} />
                           </button>
                         </div>
                       </td>
@@ -395,25 +413,41 @@ export default function UsuariosPage() {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-lg w-full max-w-md p-6">
-            <h3 className="font-semibold text-text text-lg mb-5">
-              {editing ? 'Editar usuario' : 'Nuevo usuario'}
-            </h3>
+        <div className="fixed inset-0 bg-black/40 z-50 overflow-y-auto">
+          <div className="min-h-full flex items-start sm:items-center justify-center p-4">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
+              <div className="flex items-center justify-between gap-3 mb-5">
+                <h3 className="font-semibold text-text text-lg">
+                  {editing ? 'Información de usuario' : 'Nuevo usuario'}
+                </h3>
 
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <div>
-                <label className="text-sm font-medium text-text block mb-1">Nombre *</label>
-                <input
-                  value={form.nombre}
-                  onChange={e => handleChange('nombre', e.target.value)}
-                  placeholder="Juan Pérez"
-                  required
-                  className="w-full border border-border rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary"
-                />
+                {editing && !isModalEditing && (
+                  <button
+                    type="button"
+                    onClick={() => setIsModalEditing(true)}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-dark transition-colors"
+                  >
+                    <Pencil size={14} />
+                    Editar
+                  </button>
+                )}
               </div>
 
-              {!editing && (
+              <form onSubmit={handleSubmit} className="space-y-3">
+                <div>
+                  <label className="text-sm font-medium text-text block mb-1">Nombre *</label>
+                  <input
+                    value={form.nombre}
+                    onChange={e => handleChange('nombre', e.target.value)}
+                    placeholder="Juan Pérez"
+                    required
+                    disabled={isReadOnly}
+                    className={`w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${
+                      isReadOnly ? 'bg-gray-100 text-text-muted cursor-not-allowed' : 'bg-white text-text'
+                    }`}
+                  />
+                </div>
+
                 <div>
                   <label className="text-sm font-medium text-text block mb-1">Email *</label>
                   <input
@@ -422,67 +456,123 @@ export default function UsuariosPage() {
                     onChange={e => handleChange('email', e.target.value)}
                     placeholder="usuario@ejemplo.com"
                     required
+                    disabled={Boolean(editing)}
+                    className={`w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${
+                      editing ? 'bg-gray-100 text-text-muted cursor-not-allowed' : 'bg-white text-text'
+                    }`}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-text block mb-1">
+                    {editing ? (
+                      <span className="flex items-center gap-1.5"><KeyRound size={13} /> Nueva contraseña (dejar vacío para no cambiar)</span>
+                    ) : 'Contraseña *'}
+                  </label>
+                  <input
+                    type="password"
+                    value={form.password}
+                    onChange={e => handleChange('password', e.target.value)}
+                    placeholder={editing ? '••••••••' : 'Mínimo 6 caracteres'}
+                    required={!editing}
+                    minLength={editing ? undefined : 6}
+                    disabled={isReadOnly}
                     className="w-full border border-border rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
-              )}
 
-              <div>
-                <label className="text-sm font-medium text-text block mb-1">
-                  {editing ? (
-                    <span className="flex items-center gap-1.5"><KeyRound size={13} /> Nueva contraseña (dejar vacío para no cambiar)</span>
-                  ) : 'Contraseña *'}
-                </label>
-                <input
-                  type="password"
-                  value={form.password}
-                  onChange={e => handleChange('password', e.target.value)}
-                  placeholder={editing ? '••••••••' : 'Mínimo 6 caracteres'}
-                  required={!editing}
-                  minLength={editing ? undefined : 6}
-                  className="w-full border border-border rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-text block mb-1">Rol *</label>
-                <select
-                  value={form.rol}
-                  onChange={e => handleChange('rol', e.target.value)}
-                  className="w-full border border-border rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-                >
-                  <option value="ADMIN">Administrador</option>
-                  <option value="MESERO">Mesero</option>
-                  <option value="COCINERO">Cocinero</option>
-                </select>
-              </div>
-
-              {isDueno && (
                 <div>
-                  <label className="text-sm font-medium text-text block mb-1">Sucursal *</label>
+                  <label className="text-sm font-medium text-text block mb-1">Rol *</label>
                   <select
-                    value={form.sucursalId}
-                    onChange={e => handleChange('sucursalId', e.target.value)}
-                    required
-                    className="w-full border border-border rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                    value={form.rol}
+                    onChange={e => handleChange('rol', e.target.value)}
+                    disabled={isReadOnly}
+                    className={`w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${
+                      isReadOnly ? 'bg-gray-100 text-text-muted cursor-not-allowed' : 'bg-white text-text'
+                    }`}
                   >
-                    <option value="">Selecciona una sucursal</option>
-                    {sucursales.map(s => (
-                      <option key={s.id} value={s.id}>{s.nombre}</option>
-                    ))}
+                    <option value="ADMIN">Administrador</option>
+                    <option value="MESERO">Mesero</option>
+                    <option value="COCINERO">Cocinero</option>
                   </select>
                 </div>
-              )}
 
-              <div className="flex gap-3 pt-2">
-                <Button type="button" variant="secondary" className="flex-1" onClick={closeModal}>
-                  Cancelar
-                </Button>
-                <Button type="submit" className="flex-1" loading={crear.isPending || actualizar.isPending}>
-                  {editing ? 'Guardar cambios' : 'Crear usuario'}
-                </Button>
-              </div>
-            </form>
+                {isDueno && (
+                  <div>
+                    <label className="text-sm font-medium text-text block mb-1">Sucursal *</label>
+                    <select
+                      value={form.sucursalId}
+                      onChange={e => handleChange('sucursalId', e.target.value)}
+                      required
+                      disabled={isReadOnly}
+                      className={`w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${
+                        isReadOnly ? 'bg-gray-100 text-text-muted cursor-not-allowed' : 'bg-white text-text'
+                      }`}
+                    >
+                      <option value="">Selecciona una sucursal</option>
+                      {sucursales.map(s => (
+                        <option key={s.id} value={s.id}>{s.nombre}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {editing && (
+                  <div>
+                    <label className="text-sm font-medium text-text block mb-1">Fecha de creación</label>
+                    <input
+                      value={formatDate(editing.creadoEn)}
+                      disabled
+                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-gray-100 text-text-muted cursor-not-allowed"
+                    />
+                  </div>
+                )}
+
+                <div className="border-t border-border pt-4 mt-4">
+                  <label className="text-sm font-medium text-text block mb-2">
+                    Estado del usuario
+                  </label>
+
+                  <div className="flex items-center justify-between gap-4 rounded-xl border border-border px-4 py-3 bg-background/40">
+                    <div>
+                      <p className="text-sm font-medium text-text">
+                        {form.activo ? 'Usuario activo' : 'Usuario inactivo'}
+                      </p>
+                      <p className="text-xs text-text-muted mt-0.5">
+                        {form.activo
+                          ? 'Puede iniciar sesión y operar en el sistema.'
+                          : 'No puede iniciar sesión ni operar en el sistema.'}
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={isReadOnly}
+                      onClick={() => setForm(prev => ({ ...prev, activo: !prev.activo }))}
+                      className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors ${
+                        form.activo
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-gray-200 text-gray-600'
+                      } ${isReadOnly ? 'opacity-70 cursor-not-allowed' : 'hover:brightness-95'}`}
+                    >
+                      {form.activo ? 'Activo' : 'Inactivo'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <Button type="button" variant="secondary" className="flex-1" onClick={closeModal}>
+                    {isReadOnly ? 'Cerrar' : 'Cancelar'}
+                  </Button>
+
+                  {!isReadOnly && (
+                    <Button type="submit" className="flex-1" loading={crear.isPending || actualizar.isPending}>
+                      {editing ? 'Guardar cambios' : 'Crear usuario'}
+                    </Button>
+                  )}
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}
