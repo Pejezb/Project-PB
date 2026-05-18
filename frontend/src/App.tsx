@@ -5,6 +5,7 @@ import { AuthLayout } from './components/layout/AuthLayout';
 import LoginPage from './pages/auth/LoginPage';
 import DashboardPage from './pages/dashboard/DashboardPage';
 import SucursalesPage from './pages/sucursales/SucursalesPage';
+import SucursalDetallePage from './pages/sucursales/SucursalDetallePage';
 import UsuariosPage from './pages/usuarios/UsuariosPage';
 import ConfiguracionPage from './pages/configuracion/ConfiguracionPage';
 import { useAuthStore } from './store/authStore';
@@ -83,6 +84,15 @@ export default function App() {
               element={
                 <RequireDueno>
                   <SucursalesPage />
+                </RequireDueno>
+              }
+            />
+
+            <Route
+              path="/sucursales/:id"
+              element={
+                <RequireDueno>
+                  <SucursalDetallePage />
                 </RequireDueno>
               }
             />

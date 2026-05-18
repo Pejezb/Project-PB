@@ -1,24 +1,60 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, MapPin, Phone, Clock, Power, Pencil, Trash2, Building2 } from 'lucide-react';
+import { Plus, MapPin, Phone, Clock, Power, Building2, Eye, UserCircle, Trash2 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { sucursalesService } from '../../services/sucursales.service';
+import { usuariosService } from '../../services/usuarios.service';
 import type { Sucursal } from '../../types';
 import toast from 'react-hot-toast';
 
 interface FormState {
-  nombre: string; direccion: string; telefono: string;
-  horarioApertura: string; horarioCierre: string; diasOperacion: string;
+  nombre: string;
+  direccion: string;
+  telefono: string;
+  diasOperacion: string[];
+  horarioApertura: string;
+  horarioCierre: string;
 }
 
+const DIAS_OPERACION = [
+  { value: 'LUN', label: 'Lun' },
+  { value: 'MAR', label: 'Mar' },
+  { value: 'MIE', label: 'Mié' },
+  { value: 'JUE', label: 'Jue' },
+  { value: 'VIE', label: 'Vie' },
+  { value: 'SAB', label: 'Sáb' },
+  { value: 'DOM', label: 'Dom' },
+];
+
+const MOSTRAR_ELIMINAR_SUCURSAL = false;
+
+const parseDiasOperacion = (value?: string) => {
+  if (!value) return [];
+
+  return value
+    .split(/[-,]/)
+    .map((dia) => dia.trim())
+    .filter(Boolean);
+};
+
+const formatDiasOperacion = (dias: string[]) => {
+  return dias.join('-');
+};
+
 const emptyForm: FormState = {
-  nombre: '', direccion: '', telefono: '',
-  horarioApertura: '08:00', horarioCierre: '22:00', diasOperacion: 'LUN-DOM',
+  nombre: '',
+  direccion: '',
+  telefono: '',
+  diasOperacion: ['LUN', 'MAR', 'MIE', 'JUE', 'VIE', 'SAB', 'DOM'],
+  horarioApertura: '08:00',
+  horarioCierre: '22:00',
 };
 
 export default function SucursalesPage() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Sucursal | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
@@ -28,15 +64,42 @@ export default function SucursalesPage() {
     queryFn: sucursalesService.getAll,
   });
 
+  const { data: usuarios = [] } = useQuery({
+    queryKey: ['usuarios', 'sucursales-staff'],
+    queryFn: () => usuariosService.getAll(),
+  });
+
   const crear = useMutation({
-    mutationFn: () => sucursalesService.create(form),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['sucursales'] }); toast.success('Sucursal creada'); closeModal(); },
+    mutationFn: () => sucursalesService.create({
+      nombre: form.nombre.trim(),
+      direccion: form.direccion.trim() || undefined,
+      telefono: form.telefono.trim() || undefined,
+      horarioApertura: form.horarioApertura,
+      horarioCierre: form.horarioCierre,
+      diasOperacion: formatDiasOperacion(form.diasOperacion),
+    }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['sucursales'] });
+      toast.success('Sucursal creada');
+      closeModal();
+    },
     onError: () => toast.error('Error al crear sucursal'),
   });
 
   const actualizar = useMutation({
-    mutationFn: () => sucursalesService.update(editing!.id, form),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['sucursales'] }); toast.success('Sucursal actualizada'); closeModal(); },
+    mutationFn: () => sucursalesService.update(editing!.id, {
+      nombre: form.nombre.trim(),
+      direccion: form.direccion.trim() || undefined,
+      telefono: form.telefono.trim() || undefined,
+      horarioApertura: form.horarioApertura,
+      horarioCierre: form.horarioCierre,
+      diasOperacion: formatDiasOperacion(form.diasOperacion),
+    }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['sucursales'] });
+      toast.success('Sucursal actualizada');
+      closeModal();
+    },
     onError: () => toast.error('Error al actualizar'),
   });
 
@@ -46,6 +109,7 @@ export default function SucursalesPage() {
     onError: () => toast.error('Error al cambiar estado'),
   });
 
+  
   const eliminar = useMutation({
     mutationFn: (id: string) => sucursalesService.delete(id),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['sucursales'] }); toast.success('Sucursal eliminada'); },
@@ -55,15 +119,104 @@ export default function SucursalesPage() {
   const openNew = () => { setEditing(null); setForm(emptyForm); setShowModal(true); };
   const openEdit = (s: Sucursal) => {
     setEditing(s);
-    setForm({ nombre: s.nombre, direccion: s.direccion ?? '', telefono: s.telefono ?? '',
-      horarioApertura: s.horarioApertura ?? '08:00', horarioCierre: s.horarioCierre ?? '22:00',
-      diasOperacion: s.diasOperacion ?? 'LUN-DOM' });
+    setForm({
+      nombre: s.nombre,
+      direccion: s.direccion ?? '',
+      telefono: s.telefono ?? '',
+      diasOperacion: parseDiasOperacion(s.diasOperacion),
+      horarioApertura: s.horarioApertura ?? '08:00',
+      horarioCierre: s.horarioCierre ?? '22:00',
+    });
     setShowModal(true);
   };
   const closeModal = () => { setShowModal(false); setEditing(null); setForm(emptyForm); };
 
   const handleChange = (k: keyof FormState, v: string) => setForm(f => ({ ...f, [k]: v }));
-  const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); editing ? actualizar.mutate() : crear.mutate(); };
+  const toggleDiaOperacion = (dia: string) => {
+    setForm((prev) => {
+      const exists = prev.diasOperacion.includes(dia);
+
+      return {
+        ...prev,
+        diasOperacion: exists
+          ? prev.diasOperacion.filter((item) => item !== dia)
+          : [...prev.diasOperacion, dia],
+      };
+    });
+  };
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const nombre = form.nombre.trim();
+    const direccion = form.direccion.trim();
+    const telefono = form.telefono.trim();
+
+    if (nombre.length < 3) {
+      toast.error('El nombre de la sucursal debe tener al menos 3 caracteres');
+      return;
+    }
+
+    if (direccion.length < 5) {
+      toast.error('La dirección es obligatoria y debe tener al menos 5 caracteres');
+      return;
+    }
+
+    if (!telefono) {
+      toast.error('El teléfono es obligatorio');
+      return;
+    }
+
+    if (!/^\d+$/.test(telefono)) {
+      toast.error('El teléfono solo debe contener números');
+      return;
+    }
+
+    if (telefono.length < 7 || telefono.length > 9) {
+      toast.error('El teléfono debe tener entre 7 y 9 dígitos');
+      return;
+    }
+
+    if (form.diasOperacion.length === 0) {
+      toast.error('Selecciona al menos un día de operación');
+      return;
+    }
+
+    if (!form.horarioApertura || !form.horarioCierre) {
+      toast.error('Configura la hora de apertura y cierre');
+      return;
+    }
+
+    if (form.horarioApertura >= form.horarioCierre) {
+      toast.error('La hora de cierre debe ser posterior a la apertura');
+      return;
+    }
+
+    editing ? actualizar.mutate() : crear.mutate();
+  };
+
+  const getAdministradorLabel = (sucursalId: string) => {
+    const administradores = usuarios.filter((usuario) => {
+      const usuarioSucursalId = usuario.sucursalId ?? usuario.sucursal?.id;
+      return usuarioSucursalId === sucursalId && usuario.rol === 'ADMIN';
+    });
+
+    if (administradores.length === 0) return 'Sin administrador';
+    if (administradores.length === 1) return administradores[0].nombre;
+
+    return `${administradores.length} administradores`;
+  };
+
+  const handleToggleSucursal = (sucursal: Sucursal) => {
+    const accion = sucursal.abierto ? 'cerrar' : 'abrir';
+
+    const mensaje = sucursal.abierto
+      ? `¿Deseas cerrar "${sucursal.nombre}"?\n\nLos meseros y cocineros ya no podrán operar en esta sucursal.`
+      : `¿Deseas abrir "${sucursal.nombre}"?\n\nLos usuarios asignados podrán iniciar sesión y operar en esta sucursal.`;
+
+    if (confirm(mensaje)) {
+      toggle.mutate(sucursal.id);
+    }
+  };
 
   return (
     <div className="space-y-5">
@@ -90,46 +243,94 @@ export default function SucursalesPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {sucursales.map((s) => (
-            <div key={s.id} className="bg-white rounded-xl border border-border shadow-card p-5 flex flex-col gap-4">
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-text truncate">{s.nombre}</h3>
-                  <Badge variant={s.abierto ? 'success' : 'neutral'} className="mt-1">
-                    {s.abierto ? '● Abierto' : '○ Cerrado'}
-                  </Badge>
+            <div
+              key={s.id}
+              className="bg-white rounded-xl border border-border shadow-card p-5 flex flex-col gap-4 hover:shadow-md transition-shadow"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+                    <Building2 size={20} />
+                  </div>
+
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-text truncate">{s.nombre}</h3>
+                    <Badge variant={s.abierto ? 'success' : 'neutral'} className="mt-1">
+                      {s.abierto ? '● Abierto' : '○ Cerrado'}
+                    </Badge>
+                  </div>
                 </div>
               </div>
 
-              <div className="space-y-1.5 text-sm text-text-muted">
-                {s.direccion && <p className="flex items-center gap-2"><MapPin size={13} />{s.direccion}</p>}
-                {s.telefono && <p className="flex items-center gap-2"><Phone size={13} />{s.telefono}</p>}
-                {s.horarioApertura && (
+              <div className="space-y-2 text-sm text-text-muted">
+                {s.direccion && (
                   <p className="flex items-center gap-2">
-                    <Clock size={13} />{s.horarioApertura} – {s.horarioCierre}
-                    {s.diasOperacion && <span className="ml-1 text-xs">({s.diasOperacion})</span>}
+                    <MapPin size={14} className="flex-shrink-0" />
+                    <span className="truncate">{s.direccion}</span>
                   </p>
                 )}
+
+                {s.telefono && (
+                  <p className="flex items-center gap-2">
+                    <Phone size={14} className="flex-shrink-0" />
+                    <span>{s.telefono}</span>
+                  </p>
+                )}
+
+                {s.horarioApertura && (
+                  <p className="flex items-center gap-2">
+                    <Clock size={14} className="flex-shrink-0" />
+                    <span>
+                      {s.horarioApertura} – {s.horarioCierre}
+                      {s.diasOperacion && <span className="ml-1 text-xs">({s.diasOperacion})</span>}
+                    </span>
+                  </p>
+                )}
+
+                <p className="flex items-center gap-2">
+                  <UserCircle size={14} className="flex-shrink-0" />
+                  <span className="truncate">
+                    Administrador: {getAdministradorLabel(s.id)}
+                  </span>
+                </p>
               </div>
 
-              <div className="flex gap-2 pt-1 border-t border-border">
+              <div className="flex items-center gap-2 pt-3 border-t border-border mt-auto">
                 <button
-                  onClick={() => toggle.mutate(s.id)}
+                  onClick={() => handleToggleSucursal(s)}
                   className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    s.abierto ? 'bg-red-50 text-error hover:bg-red-100' : 'bg-green-50 text-primary hover:bg-green-100'
+                    s.abierto
+                      ? 'bg-red-50 text-error hover:bg-red-100'
+                      : 'bg-green-50 text-primary hover:bg-green-100'
                   }`}
                 >
                   <Power size={14} />
                   {s.abierto ? 'Cerrar local' : 'Abrir local'}
                 </button>
-                <button onClick={() => openEdit(s)} className="p-2 rounded-lg hover:bg-background text-text-muted hover:text-text transition-colors">
-                  <Pencil size={15} />
-                </button>
+
                 <button
-                  onClick={() => { if (confirm('¿Eliminar esta sucursal?')) eliminar.mutate(s.id); }}
-                  className="p-2 rounded-lg hover:bg-red-50 text-text-muted hover:text-error transition-colors"
+                  type="button"
+                  onClick={() => navigate(`/sucursales/${s.id}`)}
+                  className="p-2 rounded-lg hover:bg-green-50 text-primary hover:text-primary-dark transition-colors"
+                  title="Ver información"
                 >
-                  <Trash2 size={15} />
+                  <Eye size={16} />
                 </button>
+
+                {MOSTRAR_ELIMINAR_SUCURSAL && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (confirm(`¿Eliminar la sucursal "${s.nombre}"? Esta acción puede borrar información relacionada.`)) {
+                        eliminar.mutate(s.id);
+                      }
+                    }}
+                    className="p-2 rounded-lg hover:bg-red-50 text-text-muted hover:text-error transition-colors"
+                    title="Eliminar sucursal"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -138,43 +339,113 @@ export default function SucursalesPage() {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-lg w-full max-w-md p-6">
-            <h3 className="font-semibold text-text text-lg mb-5">{editing ? 'Editar sucursal' : 'Nueva sucursal'}</h3>
-            <form onSubmit={handleSubmit} className="space-y-3">
-              {[
-                { k: 'nombre', label: 'Nombre *', placeholder: 'Ej: Local Centro' },
-                { k: 'direccion', label: 'Dirección', placeholder: 'Av. Principal 123' },
-                { k: 'telefono', label: 'Teléfono', placeholder: '01-234-5678' },
-                { k: 'diasOperacion', label: 'Días de operación', placeholder: 'LUN-DOM' },
-              ].map(({ k, label, placeholder }) => (
-                <div key={k}>
-                  <label className="text-sm font-medium text-text block mb-1">{label}</label>
+        <div className="fixed inset-0 bg-black/40 z-50 overflow-y-auto">
+          <div className="min-h-full flex items-start sm:items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-lg w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
+              <h3 className="font-semibold text-text text-lg mb-5">{editing ? 'Editar sucursal' : 'Nueva sucursal'}</h3>
+              <form onSubmit={handleSubmit} className="space-y-3">
+                <div>
+                  <label className="text-sm font-medium text-text block mb-1">Nombre *</label>
                   <input
-                    value={form[k as keyof FormState]}
-                    onChange={e => handleChange(k as keyof FormState, e.target.value)}
-                    placeholder={placeholder}
-                    required={k === 'nombre'}
+                    value={form.nombre}
+                    onChange={(e) => handleChange('nombre', e.target.value)}
+                    placeholder="Ej: Local Centro"
+                    required
                     className="w-full border border-border rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
-              ))}
-              <div className="grid grid-cols-2 gap-3">
-                {[{ k: 'horarioApertura', label: 'Apertura', type: 'time' }, { k: 'horarioCierre', label: 'Cierre', type: 'time' }].map(({ k, label, type }) => (
-                  <div key={k}>
-                    <label className="text-sm font-medium text-text block mb-1">{label}</label>
-                    <input type={type} value={form[k as keyof FormState]} onChange={e => handleChange(k as keyof FormState, e.target.value)}
-                      className="w-full border border-border rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary" />
+
+                <div>
+                  <label className="text-sm font-medium text-text block mb-1">Dirección</label>
+                  <input
+                    value={form.direccion}
+                    onChange={(e) => handleChange('direccion', e.target.value)}
+                    placeholder="Av. Principal 123"
+                    required
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-text block mb-1">Teléfono</label>
+                  <input
+                    value={form.telefono}
+                    onChange={(e) => {
+                      const onlyNumbers = e.target.value.replace(/\D/g, '').slice(0, 9);
+                      handleChange('telefono', onlyNumbers);
+                    }}
+                    inputMode="numeric"
+                    maxLength={9}
+                    required
+                    placeholder="987654321"
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                  <p className="text-xs text-text-muted mt-1">
+                    Solo números. Entre 7 y 9 dígitos.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-text block mb-2">
+                    Días de operación *
+                  </label>
+
+                  <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+                    {DIAS_OPERACION.map((dia) => {
+                      const selected = form.diasOperacion.includes(dia.value);
+
+                      return (
+                        <button
+                          key={dia.value}
+                          type="button"
+                          onClick={() => toggleDiaOperacion(dia.value)}
+                          className={`rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${
+                            selected
+                              ? 'border-primary bg-primary text-white'
+                              : 'border-border bg-white text-text-muted hover:bg-gray-50'
+                          }`}
+                        >
+                          {dia.label}
+                        </button>
+                      );
+                    })}
                   </div>
-                ))}
+
+                  <p className="text-xs text-text-muted mt-2">
+                    Selecciona los días en que la sucursal atenderá.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-sm font-medium text-text block mb-1">Apertura</label>
+                      <input
+                        type="time"
+                        value={form.horarioApertura}
+                        onChange={(e) => handleChange('horarioApertura', e.target.value)}
+                        className="w-full border border-border rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-text block mb-1">Cierre</label>
+                      <input
+                        type="time"
+                        value={form.horarioCierre}
+                        onChange={(e) => handleChange('horarioCierre', e.target.value)}
+                        className="w-full border border-border rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <Button type="button" variant="secondary" className="flex-1" onClick={closeModal}>Cancelar</Button>
+                  <Button type="submit" className="flex-1" loading={crear.isPending || actualizar.isPending}>
+                    {editing ? 'Guardar cambios' : 'Crear sucursal'}
+                  </Button>
+                </div>
+              </form>
               </div>
-              <div className="flex gap-3 pt-2">
-                <Button type="button" variant="secondary" className="flex-1" onClick={closeModal}>Cancelar</Button>
-                <Button type="submit" className="flex-1" loading={crear.isPending || actualizar.isPending}>
-                  {editing ? 'Guardar cambios' : 'Crear sucursal'}
-                </Button>
-              </div>
-            </form>
           </div>
         </div>
       )}
