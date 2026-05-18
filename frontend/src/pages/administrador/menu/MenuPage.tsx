@@ -11,6 +11,8 @@ import {
 interface Categoria {
   id: string;
   nombre: string;
+  sucursalId?: string;
+  _count?: { productos: number };
 }
 
 interface Producto {
@@ -53,28 +55,23 @@ export default function MenuPage() {
     tipo: 'COCINA' as 'COCINA' | 'COMPLEMENTO',
   });
 
+  // FETCH
   const cargarCategorias = async () => {
     const res = await fetch(`${API}/categorias`);
     setCategorias(await res.json());
   };
 
   const cargarProductos = async () => {
-  const res = await fetch(`${API}/productos`);
-  const data = await res.json();
-
-  setProductos(
-    data.map((p: Producto) => ({
-      ...p,
-      descripcion: p.descripcion ?? '',
-    }))
-  );
-};
+    const res = await fetch(`${API}/productos`);
+    setProductos(await res.json());
+  };
 
   useEffect(() => {
     cargarCategorias();
     cargarProductos();
   }, []);
 
+  // CATEGORÍA
   const crearCategoria = async () => {
     if (!nuevaCategoria.trim()) return;
 
@@ -150,6 +147,7 @@ export default function MenuPage() {
     cargarProductos();
   };
 
+  // FILTRO
   const productosFiltrados = productos.filter((p) => {
     const okBusqueda = p.nombre.toLowerCase().includes(busqueda.toLowerCase());
     const okCategoria =
@@ -157,6 +155,25 @@ export default function MenuPage() {
 
     return okBusqueda && okCategoria;
   });
+
+  // Comprime la imagen antes de enviarla (reduce peso ~80%)
+  const comprimirImagen = (file: File, maxWidth = 800, quality = 0.7): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const scale = Math.min(1, maxWidth / img.width);
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        URL.revokeObjectURL(url);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = url;
+    });
+  };
 
   return (
     <div className="p-6 bg-background min-h-screen">
@@ -230,8 +247,6 @@ export default function MenuPage() {
         ))}
       </div>
 
-      
-
       {/* PRODUCTOS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
         {productosFiltrados.map((producto) => (
@@ -241,7 +256,7 @@ export default function MenuPage() {
           >
             <div className="relative">
               <img src={producto.imagen} className="w-full h-52 object-cover" />
- 
+
               <div
                 className={`absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-semibold ${
                   producto.tipo === 'COCINA'
@@ -252,24 +267,24 @@ export default function MenuPage() {
                 {producto.tipo === 'COCINA' ? 'Cocina' : 'Complemento'}
               </div>
             </div>
- 
+
             <div className="p-5">
               <span className="inline-block bg-primary/10 text-primary text-xs font-semibold px-3 py-1 rounded-full mb-3">
                 {producto.categoria.nombre}
               </span>
- 
+
               <h2 className="text-lg font-bold text-text mb-2">
                 {producto.nombre}
               </h2>
- 
+
               <p className="text-sm text-text-muted mb-4 line-clamp-2">
                 {producto.descripcion}
               </p>
- 
+
               <span className="text-2xl font-bold text-primary">
                 S/ {Number(producto.precio).toFixed(2)}
               </span>
- 
+
               <div className="flex gap-3 mt-4">
                 <button
                   onClick={() => {
@@ -374,16 +389,11 @@ export default function MenuPage() {
                     type="file"
                     accept="image/*"
                     className="hidden"
-                    onChange={(e) => {
+                    onChange={async (e) => {
                       const archivo = e.target.files?.[0];
-
                       if (archivo) {
-                        const urlImagen = URL.createObjectURL(archivo);
-
-                        setNuevoProducto({
-                          ...nuevoProducto,
-                          imagen: urlImagen,
-                        });
+                        const base64 = await comprimirImagen(archivo);
+                        setNuevoProducto({ ...nuevoProducto, imagen: base64 });
                       }
                     }}
                   />
@@ -434,6 +444,7 @@ export default function MenuPage() {
                 />
               </div>
 
+              {/* FIX: value apunta a categoriaId, options usan categoria.id y categoria.nombre */}
               <div>
                 <label className="text-sm font-medium mb-2 block">
                   Categoría
@@ -503,16 +514,16 @@ export default function MenuPage() {
                 </label>
 
                 <textarea
-  rows={4}
-  value={nuevoProducto.descripcion ?? ''}
-  onChange={(e) =>
-    setNuevoProducto({
-      ...nuevoProducto,
-      descripcion: e.target.value,
-    })
-  }
-  className="w-full border border-border rounded-xl px-4 py-3 outline-none resize-none"
-/>
+                  rows={4}
+                  value={nuevoProducto.descripcion}
+                  onChange={(e) =>
+                    setNuevoProducto({
+                      ...nuevoProducto,
+                      descripcion: e.target.value,
+                    })
+                  }
+                  className="w-full border border-border rounded-xl px-4 py-3 outline-none resize-none"
+                />
               </div>
             </div>
 
@@ -573,16 +584,11 @@ export default function MenuPage() {
                     type="file"
                     accept="image/*"
                     className="hidden"
-                    onChange={(e) => {
+                    onChange={async (e) => {
                       const archivo = e.target.files?.[0];
-
                       if (archivo) {
-                        const urlImagen = URL.createObjectURL(archivo);
-
-                        setProductoEditando({
-                          ...productoEditando,
-                          imagen: urlImagen,
-                        });
+                        const base64 = await comprimirImagen(archivo);
+                        setProductoEditando({ ...productoEditando, imagen: base64 });
                       }
                     }}
                   />
@@ -633,6 +639,7 @@ export default function MenuPage() {
                 />
               </div>
 
+              {/* FIX: value apunta a categoria.id, onChange actualiza el objeto categoria completo */}
               <div>
                 <label className="text-sm font-medium mb-2 block">
                   Categoría
@@ -703,16 +710,16 @@ export default function MenuPage() {
                 </label>
 
                 <textarea
-  rows={4}
-  value={productoEditando.descripcion ?? ''}
-  onChange={(e) =>
-    setProductoEditando({
-      ...productoEditando,
-      descripcion: e.target.value,
-    })
-  }
-  className="w-full border border-border rounded-xl px-4 py-3 outline-none resize-none"
-/>
+                  rows={4}
+                  value={productoEditando.descripcion}
+                  onChange={(e) =>
+                    setProductoEditando({
+                      ...productoEditando,
+                      descripcion: e.target.value,
+                    })
+                  }
+                  className="w-full border border-border rounded-xl px-4 py-3 outline-none resize-none"
+                />
               </div>
             </div>
 
