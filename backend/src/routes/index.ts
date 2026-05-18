@@ -5,13 +5,8 @@ import { getSucursales, getSucursalById, createSucursal, updateSucursal, toggleS
 import { getUsuarios, createUsuario, updateUsuario, deleteUsuario, updateMe, changeMyPassword } from '../controllers/usuarios.controller';
 import { getDashboardDueno, getDashboardSucursal } from '../controllers/dashboard.controller';
 import { getAsistencias, toggleAsistencia } from '../controllers/asistencias.controller';
-
-console.log({
-  login,
-  me,
-  getDashboardDueno,
-  getDashboardSucursal
-});
+import { crearMesa, getMesas, actualizarMesa } from '../controllers/mesa.controller';
+import {crearCategoria, listarCategorias, crearProducto, listarProductos, actualizarProducto, eliminarProducto, obtenerProducto, toggleDisponibilidad} from '../controllers/menu.controller';
 
 const router = Router();
 // ── Auth (público) ────────────────────────────────────────────────────────────
@@ -43,6 +38,22 @@ router.delete('/usuarios/:id', authMiddleware, roleMiddleware('DUENO', 'ADMIN'),
 // Asistencias ────────────────────────────────────────────────────────────────
 router.get('/asistencias', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), getAsistencias);
 router.post('/asistencias/:id', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), toggleAsistencia);
+
+// Mesas ────────────────────────────────────────────────────────────────
+router.get('/mesas', authMiddleware, roleMiddleware('ADMIN'), getMesas);
+router.post('/mesas', authMiddleware, roleMiddleware('ADMIN'), crearMesa);
+router.patch('/mesas/:id', authMiddleware, roleMiddleware('ADMIN'), actualizarMesa);
+
+// Menu 
+router.post('/categorias', crearCategoria);
+router.get('/categorias', listarCategorias);
+router.post('/productos', crearProducto);
+router.get('/productos', listarProductos);
+
+router.get('/productos/:id', obtenerProducto);
+router.put('/productos/:id', actualizarProducto);
+router.delete('/productos/:id', eliminarProducto);
+router.patch('/productos/:id/toggle', toggleDisponibilidad);
 
 // ── Placeholder: rutas que el equipo implementará ────────────────────────────
 // router.use('/mesas',    authMiddleware, mesasRouter);

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Plus,
   Search,
@@ -8,17 +8,29 @@ import {
   ImagePlus,
 } from 'lucide-react';
 
+interface Categoria {
+  id: string;
+  nombre: string;
+  sucursalId?: string;
+  _count?: { productos: number };
+}
+
 interface Producto {
-  id: number;
+  id: string;
   nombre: string;
   descripcion: string;
   precio: number;
-  categoria: string;
+  categoria: {
+    id: string;
+    nombre: string;
+  };
   imagen: string;
   tipo: 'COCINA' | 'COMPLEMENTO';
 }
 
 export default function MenuPage() {
+  const API = 'http://localhost:3001/api';
+
   const [busqueda, setBusqueda] = useState('');
   const [categoriaActiva, setCategoriaActiva] = useState('Todos');
 
@@ -28,131 +40,148 @@ export default function MenuPage() {
 
   const [nuevaCategoria, setNuevaCategoria] = useState('');
 
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [productos, setProductos] = useState<Producto[]>([]);
+
   const [productoEditando, setProductoEditando] =
     useState<Producto | null>(null);
-
-  const [categorias, setCategorias] = useState([
-    'Pollos a la brasa',
-    'Combos',
-    'Bebidas',
-    'Guarniciones',
-  ]);
-
-  const [productos, setProductos] = useState<Producto[]>([
-    {
-      id: 1,
-      nombre: '1/4 Pollo a la Brasa',
-      descripcion: 'Pollo acompañado de papas fritas.',
-      precio: 18.9,
-      categoria: 'Pollos a la brasa',
-      tipo: 'COCINA',
-      imagen:
-        'https://images.unsplash.com/photo-1600891964092-4316c288032e',
-    },
-    {
-      id: 2,
-      nombre: 'Inca Kola',
-      descripcion: 'Bebida personal helada.',
-      precio: 5.5,
-      categoria: 'Bebidas',
-      tipo: 'COMPLEMENTO',
-      imagen:
-        'https://images.unsplash.com/photo-1629203851122-3726ecdf080e',
-    },
-  ]);
 
   const [nuevoProducto, setNuevoProducto] = useState({
     nombre: '',
     descripcion: '',
     precio: '',
-    categoria: '',
+    categoriaId: '',
     imagen: '',
-    tipo: 'COCINA',
+    tipo: 'COCINA' as 'COCINA' | 'COMPLEMENTO',
   });
 
-  const crearCategoria = () => {
+  // FETCH
+  const cargarCategorias = async () => {
+    const res = await fetch(`${API}/categorias`);
+    setCategorias(await res.json());
+  };
+
+  const cargarProductos = async () => {
+    const res = await fetch(`${API}/productos`);
+    setProductos(await res.json());
+  };
+
+  useEffect(() => {
+    cargarCategorias();
+    cargarProductos();
+  }, []);
+
+  // CATEGORÍA
+  const crearCategoria = async () => {
     if (!nuevaCategoria.trim()) return;
 
-    setCategorias([...categorias, nuevaCategoria]);
+    await fetch(`${API}/categorias`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nombre: nuevaCategoria,
+        sucursalId: 'sucursal-1',
+      }),
+    });
 
     setNuevaCategoria('');
     setModalCategoria(false);
+    cargarCategorias();
   };
 
-  const crearProducto = () => {
-    if (
-      !nuevoProducto.nombre ||
-      !nuevoProducto.precio ||
-      !nuevoProducto.categoria
-    ) {
+  // PRODUCTO
+  const crearProducto = async () => {
+    if (!nuevoProducto.nombre || !nuevoProducto.precio || !nuevoProducto.categoriaId)
       return;
-    }
 
-    const producto: Producto = {
-      id: Date.now(),
-      nombre: nuevoProducto.nombre,
-      descripcion: nuevoProducto.descripcion,
-      precio: Number(nuevoProducto.precio),
-      categoria: nuevoProducto.categoria,
-      imagen: nuevoProducto.imagen,
-      tipo: nuevoProducto.tipo as 'COCINA' | 'COMPLEMENTO',
-    };
-
-    setProductos([producto, ...productos]);
+    await fetch(`${API}/productos`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nombre: nuevoProducto.nombre,
+        descripcion: nuevoProducto.descripcion,
+        precio: Number(nuevoProducto.precio),
+        imagen: nuevoProducto.imagen,
+        categoriaId: nuevoProducto.categoriaId,
+        sucursalId: 'sucursal-1',
+        tipo: nuevoProducto.tipo,
+      }),
+    });
 
     setNuevoProducto({
       nombre: '',
       descripcion: '',
       precio: '',
-      categoria: '',
+      categoriaId: '',
       imagen: '',
       tipo: 'COCINA',
     });
 
     setModalProducto(false);
+    cargarProductos();
   };
 
-  const actualizarProducto = () => {
+  const actualizarProducto = async () => {
     if (!productoEditando) return;
 
-    setProductos((prev) =>
-      prev.map((producto) =>
-        producto.id === productoEditando.id
-          ? productoEditando
-          : producto
-      )
-    );
+    await fetch(`${API}/productos/${productoEditando.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nombre: productoEditando.nombre,
+        descripcion: productoEditando.descripcion,
+        precio: productoEditando.precio,
+        imagen: productoEditando.imagen,
+        categoriaId: productoEditando.categoria.id,
+        tipo: productoEditando.tipo,
+      }),
+    });
 
     setModalEditar(false);
     setProductoEditando(null);
+    cargarProductos();
   };
 
-  const eliminarProducto = (id: number) => {
-    setProductos((prev) =>
-      prev.filter((producto) => producto.id !== id)
-    );
+  const eliminarProducto = async (id: string) => {
+    await fetch(`${API}/productos/${id}`, { method: 'DELETE' });
+    cargarProductos();
   };
 
-  const productosFiltrados = productos.filter((producto) => {
-    const coincideBusqueda = producto.nombre
-      .toLowerCase()
-      .includes(busqueda.toLowerCase());
+  // FILTRO
+  const productosFiltrados = productos.filter((p) => {
+    const okBusqueda = p.nombre.toLowerCase().includes(busqueda.toLowerCase());
+    const okCategoria =
+      categoriaActiva === 'Todos' || p.categoria.nombre === categoriaActiva;
 
-    const coincideCategoria =
-      categoriaActiva === 'Todos' ||
-      producto.categoria === categoriaActiva;
-
-    return coincideBusqueda && coincideCategoria;
+    return okBusqueda && okCategoria;
   });
+
+  // Comprime la imagen antes de enviarla (reduce peso ~80%)
+  const comprimirImagen = (file: File, maxWidth = 800, quality = 0.7): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const scale = Math.min(1, maxWidth / img.width);
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        URL.revokeObjectURL(url);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = url;
+    });
+  };
 
   return (
     <div className="p-6 bg-background min-h-screen">
+
+      {/* HEADER */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-text">
-            Menú
-          </h1>
-
+          <h1 className="text-3xl font-bold text-text">Menú</h1>
           <p className="text-text-muted mt-1">
             Gestiona los productos del restaurante
           </p>
@@ -177,11 +206,9 @@ export default function MenuPage() {
         </div>
       </div>
 
+      {/* SEARCH */}
       <div className="relative mb-5">
-        <Search
-          size={18}
-          className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted"
-        />
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
 
         <input
           type="text"
@@ -192,11 +219,11 @@ export default function MenuPage() {
         />
       </div>
 
+      {/* CATEGORÍAS */}
       <div className="flex flex-wrap gap-3 mb-8">
         <button
           onClick={() => setCategoriaActiva('Todos')}
-          className={`px-5 py-2 rounded-full text-sm font-medium
-          ${
+          className={`px-5 py-2 rounded-full text-sm font-medium ${
             categoriaActiva === 'Todos'
               ? 'bg-primary text-white'
               : 'bg-white border border-border'
@@ -205,22 +232,22 @@ export default function MenuPage() {
           Todos
         </button>
 
-        {categorias.map((categoria) => (
+        {categorias.map((c) => (
           <button
-            key={categoria}
-            onClick={() => setCategoriaActiva(categoria)}
-            className={`px-5 py-2 rounded-full text-sm font-medium
-            ${
-              categoriaActiva === categoria
+            key={c.id}
+            onClick={() => setCategoriaActiva(c.nombre)}
+            className={`px-5 py-2 rounded-full text-sm font-medium ${
+              categoriaActiva === c.nombre
                 ? 'bg-primary text-white'
                 : 'bg-white border border-border'
             }`}
           >
-            {categoria}
+            {c.nombre}
           </button>
         ))}
       </div>
 
+      {/* PRODUCTOS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
         {productosFiltrados.map((producto) => (
           <div
@@ -228,27 +255,22 @@ export default function MenuPage() {
             className="bg-white border border-border rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
           >
             <div className="relative">
-              <img
-                src={producto.imagen}
-                alt={producto.nombre}
-                className="w-full h-52 object-cover"
-              />
+              <img src={producto.imagen} className="w-full h-52 object-cover" />
 
               <div
-                className={`absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-semibold
-                ${
+                className={`absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-semibold ${
                   producto.tipo === 'COCINA'
                     ? 'bg-orange-500 text-white'
                     : 'bg-blue-500 text-white'
                 }`}
               >
-                {producto.tipo}
+                {producto.tipo === 'COCINA' ? 'Cocina' : 'Complemento'}
               </div>
             </div>
 
             <div className="p-5">
               <span className="inline-block bg-primary/10 text-primary text-xs font-semibold px-3 py-1 rounded-full mb-3">
-                {producto.categoria}
+                {producto.categoria.nombre}
               </span>
 
               <h2 className="text-lg font-bold text-text mb-2">
@@ -259,29 +281,25 @@ export default function MenuPage() {
                 {producto.descripcion}
               </p>
 
-              <div className="mb-5">
-                <span className="text-2xl font-bold text-primary">
-                  S/ {producto.precio.toFixed(2)}
-                </span>
-              </div>
+              <span className="text-2xl font-bold text-primary">
+                S/ {Number(producto.precio).toFixed(2)}
+              </span>
 
-              <div className="flex gap-3">
+              <div className="flex gap-3 mt-4">
                 <button
                   onClick={() => {
                     setProductoEditando(producto);
                     setModalEditar(true);
                   }}
-                  className="flex-1 flex items-center justify-center gap-2 border border-primary text-primary py-2.5 rounded-xl font-medium hover:bg-primary/5"
+                  className="flex-1 flex items-center justify-center gap-2 border border-primary text-primary py-2.5 rounded-xl"
                 >
                   <Pencil size={16} />
                   Editar
                 </button>
 
                 <button
-                  onClick={() =>
-                    eliminarProducto(producto.id)
-                  }
-                  className="flex-1 flex items-center justify-center gap-2 border border-red-200 text-red-500 py-2.5 rounded-xl font-medium hover:bg-red-50"
+                  onClick={() => eliminarProducto(producto.id)}
+                  className="flex-1 flex items-center justify-center gap-2 border border-red-200 text-red-500 py-2.5 rounded-xl"
                 >
                   <Trash2 size={16} />
                   Borrar
@@ -371,18 +389,11 @@ export default function MenuPage() {
                     type="file"
                     accept="image/*"
                     className="hidden"
-                    onChange={(e) => {
-                      const archivo =
-                        e.target.files?.[0];
-
+                    onChange={async (e) => {
+                      const archivo = e.target.files?.[0];
                       if (archivo) {
-                        const urlImagen =
-                          URL.createObjectURL(archivo);
-
-                        setNuevoProducto({
-                          ...nuevoProducto,
-                          imagen: urlImagen,
-                        });
+                        const base64 = await comprimirImagen(archivo);
+                        setNuevoProducto({ ...nuevoProducto, imagen: base64 });
                       }
                     }}
                   />
@@ -433,17 +444,18 @@ export default function MenuPage() {
                 />
               </div>
 
+              {/* FIX: value apunta a categoriaId, options usan categoria.id y categoria.nombre */}
               <div>
                 <label className="text-sm font-medium mb-2 block">
                   Categoría
                 </label>
 
                 <select
-                  value={nuevoProducto.categoria}
+                  value={nuevoProducto.categoriaId}
                   onChange={(e) =>
                     setNuevoProducto({
                       ...nuevoProducto,
-                      categoria: e.target.value,
+                      categoriaId: e.target.value,
                     })
                   }
                   className="w-full border border-border rounded-xl px-4 py-3 outline-none"
@@ -453,8 +465,8 @@ export default function MenuPage() {
                   </option>
 
                   {categorias.map((categoria) => (
-                    <option key={categoria}>
-                      {categoria}
+                    <option key={categoria.id} value={categoria.id}>
+                      {categoria.nombre}
                     </option>
                   ))}
                 </select>
@@ -469,10 +481,7 @@ export default function MenuPage() {
                   <label className="flex items-center gap-2">
                     <input
                       type="radio"
-                      checked={
-                        nuevoProducto.tipo ===
-                        'COCINA'
-                      }
+                      checked={nuevoProducto.tipo === 'COCINA'}
                       onChange={() =>
                         setNuevoProducto({
                           ...nuevoProducto,
@@ -486,10 +495,7 @@ export default function MenuPage() {
                   <label className="flex items-center gap-2">
                     <input
                       type="radio"
-                      checked={
-                        nuevoProducto.tipo ===
-                        'COMPLEMENTO'
-                      }
+                      checked={nuevoProducto.tipo === 'COMPLEMENTO'}
                       onChange={() =>
                         setNuevoProducto({
                           ...nuevoProducto,
@@ -578,18 +584,11 @@ export default function MenuPage() {
                     type="file"
                     accept="image/*"
                     className="hidden"
-                    onChange={(e) => {
-                      const archivo =
-                        e.target.files?.[0];
-
+                    onChange={async (e) => {
+                      const archivo = e.target.files?.[0];
                       if (archivo) {
-                        const urlImagen =
-                          URL.createObjectURL(archivo);
-
-                        setProductoEditando({
-                          ...productoEditando,
-                          imagen: urlImagen,
-                        });
+                        const base64 = await comprimirImagen(archivo);
+                        setProductoEditando({ ...productoEditando, imagen: base64 });
                       }
                     }}
                   />
@@ -640,24 +639,30 @@ export default function MenuPage() {
                 />
               </div>
 
+              {/* FIX: value apunta a categoria.id, onChange actualiza el objeto categoria completo */}
               <div>
                 <label className="text-sm font-medium mb-2 block">
                   Categoría
                 </label>
 
                 <select
-                  value={productoEditando.categoria}
-                  onChange={(e) =>
-                    setProductoEditando({
-                      ...productoEditando,
-                      categoria: e.target.value,
-                    })
-                  }
+                  value={productoEditando.categoria.id}
+                  onChange={(e) => {
+                    const categoriaSeleccionada = categorias.find(
+                      (c) => c.id === e.target.value
+                    );
+                    if (categoriaSeleccionada) {
+                      setProductoEditando({
+                        ...productoEditando,
+                        categoria: categoriaSeleccionada,
+                      });
+                    }
+                  }}
                   className="w-full border border-border rounded-xl px-4 py-3 outline-none"
                 >
                   {categorias.map((categoria) => (
-                    <option key={categoria}>
-                      {categoria}
+                    <option key={categoria.id} value={categoria.id}>
+                      {categoria.nombre}
                     </option>
                   ))}
                 </select>
@@ -672,10 +677,7 @@ export default function MenuPage() {
                   <label className="flex items-center gap-2">
                     <input
                       type="radio"
-                      checked={
-                        productoEditando.tipo ===
-                        'COCINA'
-                      }
+                      checked={productoEditando.tipo === 'COCINA'}
                       onChange={() =>
                         setProductoEditando({
                           ...productoEditando,
@@ -689,10 +691,7 @@ export default function MenuPage() {
                   <label className="flex items-center gap-2">
                     <input
                       type="radio"
-                      checked={
-                        productoEditando.tipo ===
-                        'COMPLEMENTO'
-                      }
+                      checked={productoEditando.tipo === 'COMPLEMENTO'}
                       onChange={() =>
                         setProductoEditando({
                           ...productoEditando,
