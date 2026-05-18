@@ -79,21 +79,24 @@ enum Rol {
   DUENO
 }
 
-// ── Mesa ──────────────────────────────────────────────────────────────────────
 model Mesa {
   id         String     @id @default(cuid())
   numero     Int
   capacidad  Int        @default(4)
   estado     EstadoMesa @default(LIBRE)
+
   sucursalId String
   sucursal   Sucursal   @relation(fields: [sucursalId], references: [id], onDelete: Cascade)
+
   pedidos    Pedido[]
+
+  @@unique([numero, sucursalId])
 }
 
 enum EstadoMesa {
   LIBRE
   OCUPADA
-  EN_ESPERA
+  RESERVADA
 }
 
 // ── Categoria ─────────────────────────────────────────────────────────────────
