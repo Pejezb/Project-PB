@@ -25,10 +25,47 @@ export async function login(req: Request, res: Response): Promise<void> {
     return;
   }
 
+  if (usuario.bloqueadoHasta && usuario.bloqueadoHasta > new Date()) {
+    const segundosRestantes = Math.ceil(
+      (usuario.bloqueadoHasta.getTime() - Date.now()) / 1000
+    );
+    res.status(429).json({
+      error: 'Cuenta bloqueada temporalmente',
+      bloqueadoHasta: usuario.bloqueadoHasta,
+      segundosRestantes,
+    });
+    return;
+  }
+
   const ok = await bcrypt.compare(password, usuario.passwordHash);
 
   if (!ok || !usuario.activo) {
-    res.status(401).json({ error: 'Credenciales incorrectas' });
+    const nuevosIntentos = usuario.intentosFallidos + 1;
+    const bloqueadoHasta = nuevosIntentos >= 3
+      ? new Date(Date.now() + 60 * 1000)
+      : null;
+
+    await prisma.usuario.update({
+      where: { email },
+      data: {
+        intentosFallidos: nuevosIntentos,
+        ...(bloqueadoHasta && { bloqueadoHasta }),
+      },
+    });
+
+    if (nuevosIntentos >= 3) {
+      res.status(429).json({
+        error: 'Cuenta bloqueada temporalmente',
+        bloqueadoHasta,
+        segundosRestantes: 60,
+      });
+      return;
+    }
+
+    res.status(401).json({
+      error: 'Credenciales incorrectas',
+      intentosRestantes: 3 - nuevosIntentos,
+    });
     return;
   }
 
@@ -37,12 +74,13 @@ export async function login(req: Request, res: Response): Promise<void> {
     return;
   }
 
+  await prisma.usuario.update({
+    where: { email },
+    data: { intentosFallidos: 0, bloqueadoHasta: null },
+  });
+
   const token = jwt.sign(
-    {
-      userId: usuario.id,
-      rol: usuario.rol,
-      sucursalId: usuario.sucursalId,
-    },
+    { userId: usuario.id, rol: usuario.rol, sucursalId: usuario.sucursalId },
     JWT_SECRET,
     { expiresIn: JWT_EXPIRES }
   );
@@ -62,4 +100,25 @@ export async function login(req: Request, res: Response): Promise<void> {
   });
 }
 
-export const me = async (req: Request, res: Response) => {};
+export const me = async (req: Request, res: Response) => {
+  const usuario = await prisma.usuario.findUnique({
+    where: { id: req.user!.userId },
+    include: { sucursal: true },
+  });
+
+  if (!usuario) {
+    res.status(404).json({ error: 'Usuario no encontrado' });
+    return;
+  }
+
+  res.json({
+    id: usuario.id,
+    nombre: usuario.nombre,
+    email: usuario.email,
+    rol: usuario.rol,
+    sucursalId: usuario.sucursalId,
+    sucursal: usuario.sucursal
+      ? { id: usuario.sucursal.id, nombre: usuario.sucursal.nombre }
+      : null,
+  });
+};
