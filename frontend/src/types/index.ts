@@ -57,4 +57,10 @@ export interface DashboardSucursal {
   mesasOcupadas: number;
   totalMesas: number;
   pedidosActivos: any[];
+  topProductos?: {
+    id: string;
+    nombre: string;
+    cantidad: number;
+    total: number;
+  }[];
 }
