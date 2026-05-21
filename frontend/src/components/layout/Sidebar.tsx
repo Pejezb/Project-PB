@@ -21,6 +21,7 @@ const navDueno = [
   { to: '/sucursales',   icon: Building2,       label: 'Sucursales' },
   { to: '/usuarios',     icon: Users,           label: 'Usuarios' },
   { to: '/reportes',     icon: BarChart3,       label: 'Reportes' },
+  { to: '/configuracion',  icon: Settings,        label: 'Configuración' },
 ];
 
 const navAdmin = [
