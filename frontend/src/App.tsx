@@ -10,6 +10,9 @@ import UsuariosPage from './pages/usuarios/UsuariosPage';
 import ConfiguracionPage from './pages/configuracion/ConfiguracionPage';
 import { useAuthStore } from './store/authStore';
 import PedidosCocinaPage from './pages/pedidos-cocina/PedidosCocinaPage';
+import MesasPageMesero from './pages/mesero/MesasPage';
+import PedidoPage from './pages/mesero/PedidoPage';
+import PedidosActivosPage from './pages/mesero/PedidosActivosPage';
 import AsistenciasPage from './pages/administrador/asistencias/AsistenciasPages';
 import MenuPage from './pages/administrador/menu/MenuPage';
 import ReportesPage from './pages/administrador/reportes/ReportesPage';
@@ -46,7 +49,8 @@ function RequireAdmin({ children }: { children: React.ReactNode }) {
 // Redirect raíz inteligente según rol
 function HomeRedirect() {
   const { user } = useAuthStore();
-  if (user?.rol === 'MESERO' || user?.rol === 'COCINERO') return <Navigate to="/configuracion" replace />;
+  if (user?.rol === 'MESERO')   return <Navigate to="/mesero/mesas" replace />;
+  if (user?.rol === 'COCINERO') return <Navigate to="/pedidos-cocina" replace />;
   return <Navigate to="/dashboard" replace />;
 }
 
@@ -106,6 +110,11 @@ export default function App() {
                 </RequireAdmin>
               }
             />
+
+            {/* Mesero */}
+            <Route path="/mesero/mesas"   element={<MesasPageMesero />} />
+            <Route path="/mesero/pedido"  element={<PedidoPage />} />
+            <Route path="/mesero/pedidos" element={<PedidosActivosPage />} />
 
             {/* Todos los roles */}
             <Route path="/configuracion" element={<ConfiguracionPage />} />

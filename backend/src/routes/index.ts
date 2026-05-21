@@ -9,6 +9,7 @@ import { crearMesa, getMesas, actualizarMesa } from '../controllers/mesa.control
 import { crearCategoria, listarCategorias, crearProducto, listarProductos, actualizarProducto, eliminarProducto, obtenerProducto, toggleDisponibilidad } from '../controllers/menu.controller';
 import { exportarReporteExcel, getReportes } from '../controllers/reportes.controller';
 import { getPedidosAdmin } from '../controllers/pedidos-admin.controller';
+import { getPedidosActivos, crearPedido, agregarItems, marcarEntregado, cobrarPedido, cancelarPedido } from '../controllers/pedidos-mesero.controller';
 
 const router = Router();
 // Auth 
@@ -42,15 +43,15 @@ router.get('/asistencias', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), get
 router.post('/asistencias/:id', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), toggleAsistencia);
 
 // Mesas
-router.get('/mesas', authMiddleware, roleMiddleware('ADMIN'), getMesas);
+router.get('/mesas', authMiddleware, roleMiddleware('ADMIN', 'MESERO'), getMesas);
 router.post('/mesas', authMiddleware, roleMiddleware('ADMIN'), crearMesa);
 router.patch('/mesas/:id', authMiddleware, roleMiddleware('ADMIN'), actualizarMesa);
 
-// Menu 
-router.post('/categorias', crearCategoria);
-router.get('/categorias', listarCategorias);
-router.post('/productos', crearProducto);
-router.get('/productos', listarProductos);
+// Menu
+router.post('/categorias', authMiddleware, roleMiddleware('ADMIN', 'DUENO'), crearCategoria);
+router.get('/categorias', authMiddleware, roleMiddleware('ADMIN', 'DUENO', 'MESERO'), listarCategorias);
+router.post('/productos', authMiddleware, roleMiddleware('ADMIN', 'DUENO'), crearProducto);
+router.get('/productos', authMiddleware, roleMiddleware('ADMIN', 'DUENO', 'MESERO'), listarProductos);
 
 router.get('/productos/:id', obtenerProducto);
 router.put('/productos/:id', actualizarProducto);
@@ -61,7 +62,15 @@ router.patch('/productos/:id/toggle', toggleDisponibilidad);
 router.get('/reportes', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), getReportes);
 router.get('/reportes/exportar', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), exportarReporteExcel);
 
-// Pedidos
+// Pedidos mesero (rutas específicas ANTES que las genéricas)
+router.get('/pedidos/activos', authMiddleware, roleMiddleware('MESERO', 'ADMIN'), getPedidosActivos);
+router.post('/pedidos', authMiddleware, roleMiddleware('MESERO'), crearPedido);
+router.patch('/pedidos/:id/items', authMiddleware, roleMiddleware('MESERO'), agregarItems);
+router.patch('/pedidos/:id/entregar', authMiddleware, roleMiddleware('MESERO'), marcarEntregado);
+router.patch('/pedidos/:id/cobrar', authMiddleware, roleMiddleware('MESERO', 'ADMIN'), cobrarPedido);
+router.patch('/pedidos/:id/cancelar', authMiddleware, roleMiddleware('MESERO', 'ADMIN'), cancelarPedido);
+
+// Pedidos admin
 router.get('/pedidos', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), getPedidosAdmin);
 
 

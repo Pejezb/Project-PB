@@ -163,13 +163,14 @@ enum EstadoPedido {
 
 // ── ItemPedido ────────────────────────────────────────────────────────────────
 model ItemPedido {
-  id         String   @id @default(cuid())
-  pedidoId   String
-  pedido     Pedido   @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
-  productoId String
-  producto   Producto @relation(fields: [productoId], references: [id], onDelete: Cascade)
-  cantidad   Int
-  precio     Decimal
-  subtotal   Decimal
-  servido    Boolean  @default(false)
+  id             String   @id @default(cuid())
+  pedidoId       String
+  pedido         Pedido   @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  productoId     String
+  producto       Producto @relation(fields: [productoId], references: [id], onDelete: Cascade)
+  cantidad       Int
+  precio         Decimal
+  subtotal       Decimal
+  servido        Boolean  @default(false)
+  enviadoACocina Boolean  @default(false)
 }
