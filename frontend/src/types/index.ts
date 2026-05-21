@@ -1,6 +1,8 @@
 export type Rol = 'DUENO' | 'ADMIN' | 'MESERO' | 'COCINERO';
-export type EstadoMesa = 'LIBRE' | 'OCUPADA' | 'EN_ESPERA';
+export type EstadoMesa = 'LIBRE' | 'OCUPADA' | 'RESERVADA';
 export type EstadoPedido = 'PENDIENTE' | 'EN_COCINA' | 'LISTO' | 'ENTREGADO' | 'PAGADO' | 'CANCELADO';
+export type TipoPedido = 'EN_MESA' | 'PARA_LLEVAR';
+export type TipoProducto = 'COCINA' | 'COMPLEMENTO';
 
 export interface Sucursal {
   id: string;
@@ -41,6 +43,64 @@ export interface AuthUser {
   rol: Rol;
   sucursalId?: string;
   sucursal?: { id: string; nombre: string };
+}
+
+export interface Mesa {
+  id: string;
+  numero: number;
+  capacidad: number;
+  estado: EstadoMesa;
+  sucursalId: string;
+}
+
+export interface Categoria {
+  id: string;
+  nombre: string;
+  sucursalId: string;
+  _count?: { productos: number };
+}
+
+export interface Producto {
+  id: string;
+  nombre: string;
+  descripcion?: string;
+  precio: number;
+  imagen?: string;
+  disponible: boolean;
+  requiereCocina: boolean;
+  tipo: TipoProducto;
+  categoriaId: string;
+  sucursalId: string;
+  categoria?: Categoria;
+}
+
+export interface ItemPedido {
+  id: string;
+  pedidoId: string;
+  productoId: string;
+  cantidad: number;
+  precio: number;
+  subtotal: number;
+  servido: boolean;
+  enviadoACocina: boolean;
+  producto?: Producto;
+}
+
+export interface Pedido {
+  id: string;
+  numero: number;
+  tipo: TipoPedido;
+  estado: EstadoPedido;
+  mesaId?: string;
+  mesa?: Mesa;
+  meseroId?: string;
+  sucursalId: string;
+  items: ItemPedido[];
+  pagado: boolean;
+  metodoPago?: string;
+  total?: number;
+  creadoEn: string;
+  actualizadoEn: string;
 }
 
 export interface DashboardDueno {

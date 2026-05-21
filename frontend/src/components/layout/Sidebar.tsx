@@ -37,9 +37,9 @@ const navAdmin = [
 ];
 
 const navMesero = [
-  { to: '/configuracion', icon: Settings, label: 'Configuración' },
-  // { to: '/mesas',   icon: Grid2X2,       label: 'Mesas' },
-  // { to: '/pedidos', icon: ClipboardList, label: 'Pedidos' },
+  { to: '/mesero/mesas',   icon: Grid2X2,       label: 'Mesas' },
+  { to: '/mesero/pedidos', icon: ClipboardList, label: 'Pedidos' },
+  { to: '/configuracion',  icon: Settings,      label: 'Configuración' },
 ];
 
 const navCocinero = [

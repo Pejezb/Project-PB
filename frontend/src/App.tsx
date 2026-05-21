@@ -18,7 +18,9 @@ import ConfiguracionPage from './pages/configuracion/ConfiguracionPage';
 import { useAuthStore } from './store/authStore';
 
 import PedidosCocinaPage from './pages/pedidos-cocina/PedidosCocinaPage';
-
+import MesasPageMesero from './pages/mesero/MesasPage';
+import PedidoPage from './pages/mesero/PedidoPage';
+import PedidosActivosPage from './pages/mesero/PedidosActivosPage';
 import AsistenciasPage from './pages/administrador/asistencias/AsistenciasPages';
 import MenuPage from './pages/administrador/menu/MenuPage';
 import ReportesPage from './pages/reportes/ReportesPage';
@@ -101,7 +103,7 @@ function HomeRedirect() {
   }
 
   if (user?.rol === 'MESERO') {
-    return <Navigate to="/configuracion" replace />;
+    return <Navigate to="/mesero/mesas" replace />;
   }
 
   return <Navigate to="/dashboard" replace />;
@@ -165,6 +167,21 @@ export default function App() {
               }
             />
 
+            <Route
+              path="/mesero/mesas"
+              element={<MesasPageMesero />}
+            />
+
+            <Route
+              path="/mesero/pedido"
+              element={<PedidoPage />}
+            />
+
+            <Route
+              path="/mesero/pedidos"
+              element={<PedidosActivosPage />}
+            />
+        
             <Route
               path="/pedidos-cocina"
               element={
