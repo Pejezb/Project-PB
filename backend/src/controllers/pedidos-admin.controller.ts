@@ -79,7 +79,7 @@ export async function getPedidosAdmin(
                     },
                 },
                 orderBy: {
-                    creadoEn: 'desc',
+                    actualizadoEn: 'desc',
                 },
             });
 
@@ -92,10 +92,7 @@ export async function getPedidosAdmin(
                 mesa:
                     pedido.mesa?.numero || 0,
 
-                estado:
-                    pedido.pagado
-                        ? 'PAGADO'
-                        : 'PENDIENTE',
+                estado: pedido.estado,
 
                 usuario:
                     pedido.mesero?.nombre ||

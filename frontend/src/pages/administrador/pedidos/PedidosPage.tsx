@@ -18,11 +18,12 @@ interface Pedido {
   id: number;
   pedidoId: string;
   mesa: number;
-  estado: 'PENDIENTE' | 'PAGADO';
+  estado: 'PENDIENTE' | 'LISTO' | 'PAGADO' | 'CANCELADO';
   usuario: string;
   productos: ProductoPedido[];
   total: number;
   creadoEn: string;
+  actualizadoEn: string;
 }
 
 export default function PedidosPage() {
@@ -50,9 +51,13 @@ export default function PedidosPage() {
   const [modalDetalle, setModalDetalle] =
     useState(false);
 
-  const fetchPedidos = async () => {
+  const fetchPedidos = async (
+    mostrarLoading = false
+  ) => {
     try {
-      setLoading(true);
+      if (mostrarLoading) {
+        setLoading(true);
+      }
 
       const params =
         new URLSearchParams();
@@ -99,11 +104,17 @@ export default function PedidosPage() {
   };
 
   useEffect(() => {
-    const timeout = setTimeout(() => {
+    const cargarPedidos = () => {
       fetchPedidos();
-    }, 300);
+    };
 
-    return () => clearTimeout(timeout);
+    cargarPedidos();
+
+    const interval = setInterval(() => {
+      cargarPedidos();
+    }, 2000);
+
+    return () => clearInterval(interval);
 
   }, [busqueda, filtro]);
 
@@ -120,70 +131,182 @@ export default function PedidosPage() {
   };
 
   const pedidosFiltrados = useMemo(() => {
-    return Array.isArray(pedidos)
-      ? pedidos
-      : [];
+    return [...pedidos].sort((a, b) => {
+      return (
+        new Date(b.actualizadoEn).getTime() -
+        new Date(a.actualizadoEn).getTime()
+      );
+    });
   }, [pedidos]);
 
   const imprimirPedido = () => {
     if (!pedidoSeleccionado) return;
 
-    const total =
-      calcularTotal(
-        pedidoSeleccionado.productos
-      ).toFixed(2);
+    const total = calcularTotal(
+      pedidoSeleccionado.productos
+    ).toFixed(2);
+
+    const fecha = new Date(pedidoSeleccionado.creadoEn)
+      .toLocaleString('es-PE', {
+        timeZone: 'America/Lima',
+      });
 
     const productosHTML =
       pedidoSeleccionado.productos
         .map(
           (p) => `
-        <tr>
-            <td style="padding:6px 0">${p.nombre}</td>
-            <td style="text-align:center;padding:6px 0">${p.cantidad}</td>
-            <td style="text-align:right;padding:6px 0">S/ ${(
-              p.precio *
-              p.cantidad
-            ).toFixed(2)}</td>
-        </tr>`
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px">
+          <div>
+            <div style="font-weight:600">
+              ${p.nombre}
+            </div>
+
+            <div style="color:#666">
+              ${p.cantidad} x S/ ${p.precio.toFixed(2)}
+            </div>
+          </div>
+
+          <div style="font-weight:600">
+            S/ ${(p.precio * p.cantidad).toFixed(2)}
+          </div>
+        </div>
+      `
         )
         .join('');
 
     const ventana = window.open(
       '',
       '_blank',
-      'width=400,height=600'
+      'width=420,height=700'
     );
 
     if (!ventana) return;
 
     ventana.document.write(`
-        <html>
-        <head><title>Pedido #${pedidoSeleccionado.id}</title></head>
-        <body style="font-family:sans-serif;padding:32px">
-            <h2>Pedido #${pedidoSeleccionado.id}</h2>
-            <hr/>
-            <p><strong>Mesa:</strong> Mesa ${pedidoSeleccionado.mesa}</p>
-            <p><strong>Usuario:</strong> ${pedidoSeleccionado.usuario}</p>
-            <p><strong>Estado:</strong> ${pedidoSeleccionado.estado}</p>
-            <hr/>
-            <table style="width:100%;border-collapse:collapse">
-            <thead>
-                <tr style="border-bottom:1px solid #000">
-                <th style="text-align:left;padding:6px 0">Producto</th>
-                <th style="text-align:center;padding:6px 0">Cant.</th>
-                <th style="text-align:right;padding:6px 0">Precio</th>
-                </tr>
-            </thead>
-            <tbody>${productosHTML}</tbody>
-            </table>
-            <hr/>
-            <div style="display:flex;justify-content:space-between;font-weight:bold;font-size:18px">
+    <html>
+      <head>
+        <title>Boleta Pedido #${pedidoSeleccionado.id}</title>
+
+        <style>
+          body{
+            font-family: Arial, sans-serif;
+            padding:20px;
+            color:#111;
+          }
+
+          .ticket{
+            max-width:340px;
+            margin:auto;
+          }
+
+          .center{
+            text-align:center;
+          }
+
+          .title{
+            font-size:22px;
+            font-weight:bold;
+            margin-bottom:4px;
+          }
+
+          .subtitle{
+            font-size:13px;
+            color:#555;
+          }
+
+          .divider{
+            border-top:1px dashed #999;
+            margin:16px 0;
+          }
+
+          .row{
+            display:flex;
+            justify-content:space-between;
+            margin-bottom:6px;
+            font-size:14px;
+          }
+
+          .total{
+            display:flex;
+            justify-content:space-between;
+            font-size:22px;
+            font-weight:bold;
+            margin-top:14px;
+          }
+
+          .footer{
+            margin-top:24px;
+            text-align:center;
+            font-size:12px;
+            color:#666;
+          }
+
+          @media print {
+            body{
+              padding:0;
+            }
+
+            .ticket{
+              width:100%;
+            }
+          }
+        </style>
+      </head>
+
+      <body>
+        <div class="ticket">
+
+          <div class="center">
+            <div class="title">
+              RESTAURANTE
+            </div>
+
+            <div class="subtitle">
+              Sistema de Pedidos
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="row">
+            <span>Pedido:</span>
+            <strong>#${pedidoSeleccionado.id}</strong>
+          </div>
+
+          <div class="row">
+            <span>Mesa:</span>
+            <strong>${pedidoSeleccionado.mesa}</strong>
+          </div>
+
+          <div class="row">
+            <span>Usuario:</span>
+            <strong>${pedidoSeleccionado.usuario}</strong>
+          </div>
+
+          <div class="row">
+            <span>Fecha:</span>
+            <strong>${fecha}</strong>
+          </div>
+
+          <div class="divider"></div>
+
+          ${productosHTML}
+
+          <div class="divider"></div>
+
+          <div class="total">
             <span>TOTAL</span>
             <span>S/ ${total}</span>
-            </div>
-        </body>
-        </html>
-    `);
+          </div>
+
+          <div class="footer">
+            Gracias por su compra
+          </div>
+
+        </div>
+      </body>
+    </html>
+  `);
 
     ventana.document.close();
 
@@ -232,6 +355,7 @@ export default function PedidosPage() {
           'TODOS',
           'PENDIENTE',
           'PAGADO',
+          'CANCELADO',
         ].map((item) => (
           <button
             key={item}
@@ -275,27 +399,35 @@ export default function PedidosPage() {
 
                     <div className="flex items-center gap-2 mt-2">
                       <div
-                        className={`w-3 h-3 rounded-full
-                    ${pedido.estado ===
-                            'PENDIENTE'
-                            ? 'bg-red-400'
-                            : 'bg-sky-400'
+                        className={`w-3 h-3 rounded-full ${pedido.estado === 'PENDIENTE'
+                          ? 'bg-yellow-400'
+                          : pedido.estado === 'LISTO'
+                            ? 'bg-blue-400'
+                            : pedido.estado === 'PAGADO'
+                              ? 'bg-green-500'
+                              : 'bg-red-400'
                           }`}
                       />
 
                       <span
-                        className={`text-sm font-medium
-                    ${pedido.estado ===
-                            'PENDIENTE'
-                            ? 'text-red-500'
-                            : 'text-sky-500'
+                        className={`text-sm font-medium ${pedido.estado === 'PENDIENTE'
+                          ? 'text-yellow-500'
+                          : pedido.estado === 'LISTO'
+                            ? 'text-blue-500'
+                            : pedido.estado === 'PAGADO'
+                              ? 'text-green-500'
+                              : 'text-red-500'
                           }`}
                       >
-                        {pedido.estado ===
-                          'PENDIENTE'
+                        {pedido.estado === 'PENDIENTE'
                           ? 'Pendiente'
-                          : 'Pagado'}
+                          : pedido.estado === 'LISTO'
+                            ? 'Listo'
+                            : pedido.estado === 'PAGADO'
+                              ? 'Pagado'
+                              : 'Cancelado'}
                       </span>
+
                     </div>
                   </div>
 
@@ -432,16 +564,14 @@ export default function PedidosPage() {
                   </p>
 
                   <h3
-                    className={`font-semibold
-                    ${pedidoSeleccionado.estado ===
-                        'PENDIENTE'
-                        ? 'text-red-500'
-                        : 'text-sky-500'
+                    className={`font-semibold ${pedidoSeleccionado.estado === 'PENDIENTE'
+                      ? 'text-yellow-500'
+                      : pedidoSeleccionado.estado === 'PAGADO'
+                        ? 'text-sky-500'
+                        : 'text-red-500'
                       }`}
                   >
-                    {
-                      pedidoSeleccionado.estado
-                    }
+                    {pedidoSeleccionado.estado}
                   </h3>
                 </div>
               </div>
@@ -512,15 +642,17 @@ export default function PedidosPage() {
               </div>
 
               <div className="flex justify-end gap-3">
-                <button
-                  onClick={
-                    imprimirPedido
-                  }
-                  className="flex items-center gap-2 px-5 py-3 rounded-xl border border-border hover:bg-background transition-colors"
-                >
-                  <Printer size={18} />
-                  Imprimir
-                </button>
+
+                {pedidoSeleccionado.estado ===
+                  'PAGADO' && (
+                    <button
+                      onClick={imprimirPedido}
+                      className="flex items-center gap-2 px-5 py-3 rounded-xl border border-border hover:bg-background transition-colors"
+                    >
+                      <Printer size={18} />
+                      Imprimir
+                    </button>
+                  )}
 
                 <button
                   onClick={() =>

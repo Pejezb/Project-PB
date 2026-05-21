@@ -130,7 +130,7 @@ export default function PedidosCocinaPage() {
 
     const interval = setInterval(() => {
       obtenerPedidos();
-    }, 5000);
+    }, 2000);
 
     return () => clearInterval(interval);
   }, []);
