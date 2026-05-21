@@ -64,3 +64,68 @@ export interface DashboardSucursal {
     total: number;
   }[];
 }
+
+export interface ReporteSucursalFiltro {
+  id: string;
+  nombre: string;
+}
+
+export interface ReporteMetodoPago {
+  metodoPago: string;
+  total: number;
+  pedidos: number;
+}
+
+export interface ReporteTopProducto {
+  productoId: string;
+  producto: string;
+  cantidad: number;
+  total: number;
+}
+
+export interface ReporteSucursalVentas {
+  sucursalId: string;
+  sucursal: string;
+  total: number;
+  pedidos: number;
+}
+
+export interface ReporteVentaDia {
+  fecha: string;
+  total: number;
+  pedidos: number;
+}
+
+export interface ReporteDetallePedido {
+  id: string;
+  numero: number;
+  fecha: string;
+  sucursal: string;
+  mesero: string;
+  metodoPago: string | null;
+  total: number;
+}
+
+export interface ReporteDueno {
+  filtros: {
+    desde: string;
+    hasta: string;
+    sucursales: ReporteSucursalFiltro[];
+  };
+  resumen: {
+    ventasTotales: number;
+    pedidosPagados: number;
+    ticketPromedio: number;
+    productoMasVendido: ReporteTopProducto | null;
+    sucursalLider: {
+      id: string;
+      nombre: string;
+      total: number;
+    } | null;
+  };
+  ventasPorDia: ReporteVentaDia[];
+  ventasPorSucursal: ReporteSucursalVentas[];
+  ventasPorMetodoPago: ReporteMetodoPago[];
+  topProductos: ReporteTopProducto[];
+  detallePedidos: ReporteDetallePedido[];
+}

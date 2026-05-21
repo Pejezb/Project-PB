@@ -7,11 +7,11 @@ import { getDashboardDueno, getDashboardSucursal } from '../controllers/dashboar
 import { getAsistencias, toggleAsistencia } from '../controllers/asistencias.controller';
 import { crearMesa, getMesas, actualizarMesa } from '../controllers/mesa.controller';
 import { crearCategoria, listarCategorias, crearProducto, listarProductos, actualizarProducto, eliminarProducto, obtenerProducto, toggleDisponibilidad } from '../controllers/menu.controller';
-import { exportarReporteExcel, getReportes } from '../controllers/reportes.controller';
+import { getReporteDueno, getReportes, exportarReporteExcel } from '../controllers/reportes.controller';
 import { getPedidosAdmin } from '../controllers/pedidos-admin.controller';
 
 const router = Router();
-// Auth 
+// Auth
 router.post('/auth/login', login);
 router.get('/auth/me', authMiddleware, me);
 router.post('/auth/logout', authMiddleware, logout);
@@ -40,6 +40,11 @@ router.delete('/usuarios/:id', authMiddleware, roleMiddleware('DUENO', 'ADMIN'),
 // Asistencias
 router.get('/asistencias', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), getAsistencias);
 router.post('/asistencias/:id', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), toggleAsistencia);
+
+// Reportes
+router.get('/reportes/dueno', authMiddleware, roleMiddleware('DUENO'), getReporteDueno);
+router.get('/reportes', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), getReportes);
+router.get('/reportes/exportar', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), exportarReporteExcel);
 
 // Mesas
 router.get('/mesas', authMiddleware, roleMiddleware('ADMIN'), getMesas);

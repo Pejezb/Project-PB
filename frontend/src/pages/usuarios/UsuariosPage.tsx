@@ -144,7 +144,8 @@ export default function UsuariosPage() {
 
   const actualizar = useMutation({
     mutationFn: () => usuariosService.update(editing!.id, {
-      nombre: form.nombre,
+      nombre: form.nombre.trim(),
+      email: form.email.trim().toLowerCase(),
       ...(isDueno
         ? { rol: form.rol }
         : isAdmin
@@ -223,6 +224,31 @@ export default function UsuariosPage() {
   const handleChange = (k: keyof FormState, v: string) => setForm(f => ({ ...f, [k]: v }));
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    const email = form.email.trim().toLowerCase();
+    const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+    if (!form.nombre.trim()) {
+      toast.error('El nombre no puede estar vacío');
+      return;
+    }
+
+    if (!emailValido) {
+      toast.error('Ingresa un email válido');
+      return;
+    }
+
+    if (!editing && form.password.length < 6) {
+      toast.error('La contraseña debe tener al menos 6 caracteres');
+      return;
+    }
+
+    setForm((prev) => ({
+      ...prev,
+      nombre: prev.nombre.trim(),
+      email,
+    }));
+
     editing ? actualizar.mutate() : crear.mutate();
   };
   const isReadOnly = Boolean(editing && !isModalEditing);
@@ -457,9 +483,10 @@ export default function UsuariosPage() {
                     onChange={e => handleChange('email', e.target.value)}
                     placeholder="usuario@ejemplo.com"
                     required
-                    disabled={Boolean(editing)}
-                    className={`w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${editing ? 'bg-gray-100 text-text-muted cursor-not-allowed' : 'bg-white text-text'
-                      }`}
+                    disabled={isReadOnly}
+                    className={`w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${
+                      isReadOnly ? 'bg-gray-100 text-text-muted cursor-not-allowed' : 'bg-white text-text'
+                    }`}
                   />
                 </div>
 

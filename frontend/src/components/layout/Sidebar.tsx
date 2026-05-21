@@ -17,9 +17,11 @@ import { cn } from '../../utils/cn';
 import { useAuthStore } from '../../store/authStore';
 
 const navDueno = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/sucursales', icon: Building2, label: 'Sucursales' },
-  { to: '/usuarios', icon: Users, label: 'Usuarios' },
+  { to: '/dashboard',      icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/sucursales',     icon: Building2,       label: 'Sucursales' },
+  { to: '/usuarios',       icon: Users,           label: 'Usuarios' },
+  { to: '/reportes',       icon: BarChart3,       label: 'Reportes' },
+  { to: '/configuracion',  icon: Settings,        label: 'Configuración' },
 ];
 
 const navAdmin = [
