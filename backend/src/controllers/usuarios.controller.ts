@@ -57,9 +57,34 @@ export async function createUsuario(req: Request, res: Response): Promise<void> 
 
 // PATCH /usuarios/:id — actualizar usuario
 export async function updateUsuario(req: Request, res: Response): Promise<void> {
-  const { nombre, rol, activo, sucursalId, password } = req.body;
+  const { nombre, email, rol, activo, sucursalId, password } = req.body;
 
-  // Si se envía password, hashearla
+  const emailNormalizado =
+    typeof email === 'string' ? email.trim().toLowerCase() : undefined;
+
+  if (email !== undefined) {
+    if (!emailNormalizado) {
+      res.status(400).json({ error: 'El email no puede estar vacío' });
+      return;
+    }
+
+    const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailNormalizado);
+    if (!emailValido) {
+      res.status(400).json({ error: 'Formato de email inválido' });
+      return;
+    }
+
+    const existente = await prisma.usuario.findUnique({
+      where: { email: emailNormalizado },
+      select: { id: true },
+    });
+
+    if (existente && existente.id !== req.params.id) {
+      res.status(409).json({ error: 'Email ya registrado' });
+      return;
+    }
+  }
+
   const passwordData = password
     ? { passwordHash: await bcrypt.hash(password, 10) }
     : {};
@@ -67,15 +92,25 @@ export async function updateUsuario(req: Request, res: Response): Promise<void> 
   const usuario = await prisma.usuario.update({
     where: { id: req.params.id },
     data: {
-      ...(nombre    !== undefined ? { nombre }    : {}),
-      ...(rol       !== undefined ? { rol }       : {}),
-      ...(activo    !== undefined ? { activo }    : {}),
-      ...(sucursalId              ? { sucursalId }: {}),
+      ...(nombre !== undefined ? { nombre } : {}),
+      ...(emailNormalizado !== undefined ? { email: emailNormalizado } : {}),
+      ...(rol !== undefined ? { rol } : {}),
+      ...(activo !== undefined ? { activo } : {}),
+      ...(sucursalId ? { sucursalId } : {}),
       ...passwordData,
     },
-    select: { id: true, nombre: true, email: true, rol: true, activo: true, sucursalId: true,
-      sucursal: { select: { id: true, nombre: true } } },
+    select: {
+      id: true,
+      nombre: true,
+      email: true,
+      rol: true,
+      activo: true,
+      sucursalId: true,
+      creadoEn: true,
+      sucursal: { select: { id: true, nombre: true } },
+    },
   });
+
   res.json(usuario);
 }
 

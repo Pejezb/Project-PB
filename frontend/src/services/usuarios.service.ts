@@ -12,6 +12,7 @@ export const usuariosService = {
   },
   update: async (id: string, payload: {
     nombre?: string;
+    email?: string;
     rol?: string;
     activo?: boolean;
     sucursalId?: string;
