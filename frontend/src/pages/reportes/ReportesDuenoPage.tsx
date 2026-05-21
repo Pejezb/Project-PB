@@ -15,6 +15,8 @@ import {
   ClipboardList,
   Crown,
   Package,
+  ReceiptText,
+  RefreshCcw,
   TrendingUp,
 } from 'lucide-react';
 import { reportesService } from '../../services/reportes.service';
@@ -24,6 +26,12 @@ type FiltroRapido = 'HOY' | 'AYER' | 'SEMANA' | 'MES' | 'PERSONALIZADO';
 
 function toInputDate(date: Date) {
   return date.toISOString().split('T')[0];
+}
+
+function formatInputDateLabel(value: string) {
+  if (!value) return '';
+  const [year, month, day] = value.split('-');
+  return `${day}/${month}/${year}`;
 }
 
 function getRangoInicial() {
@@ -133,14 +141,36 @@ export default function ReportesDuenoPage() {
     setFiltroRapido(filtro);
   };
 
+  const restablecerFiltros = () => {
+    const rango = getRangoPorFiltro('SEMANA');
+    setDesde(rango.desde);
+    setHasta(rango.hasta);
+    setSucursalId('');
+    setFiltroRapido('SEMANA');
+  };
+
   const ventasPorDia = data?.ventasPorDia ?? [];
   const ventasPorSucursal = data?.ventasPorSucursal ?? [];
+  const ventasPorMetodoPago = data?.ventasPorMetodoPago ?? [];
   const topProductos = data?.topProductos ?? [];
   const detallePedidos = data?.detallePedidos ?? [];
   const sucursales = data?.filtros.sucursales ?? [];
 
   const productoMasVendido = data?.resumen.productoMasVendido;
   const sucursalLider = data?.resumen.sucursalLider;
+
+  const sucursalSeleccionada = sucursales.find(
+    (sucursal) => sucursal.id === sucursalId
+  );
+
+  const periodoTexto =
+    desde && hasta
+      ? `Periodo: ${formatInputDateLabel(desde)} - ${formatInputDateLabel(hasta)}`
+      : 'Periodo no seleccionado';
+
+  const sucursalTexto = sucursalSeleccionada
+    ? sucursalSeleccionada.nombre
+    : 'Todas las sucursales';
 
   return (
     <div className="space-y-6">
@@ -150,10 +180,13 @@ export default function ReportesDuenoPage() {
           <p className="text-sm text-text-muted">
             Análisis detallado de ventas, pedidos y rendimiento del negocio
           </p>
+          <p className="text-xs text-text-muted mt-1">
+            {periodoTexto} · {sucursalTexto}
+          </p>
         </div>
 
         <div className="bg-white rounded-xl border border-border shadow-card p-4 w-full xl:max-w-4xl">
-          <div className="flex flex-wrap gap-2 mb-4">
+          <div className="flex flex-wrap items-center gap-2 mb-4">
             {[
               { key: 'HOY', label: 'Hoy' },
               { key: 'AYER', label: 'Ayer' },
@@ -175,6 +208,15 @@ export default function ReportesDuenoPage() {
                 {item.label}
               </button>
             ))}
+
+            <button
+              type="button"
+              onClick={restablecerFiltros}
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border border-border text-text-muted hover:text-text hover:bg-background transition-colors"
+            >
+              <RefreshCcw size={15} />
+              Restablecer
+            </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -252,8 +294,8 @@ export default function ReportesDuenoPage() {
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map((item) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+          {[1, 2, 3, 4, 5].map((item) => (
             <div
               key={item}
               className="bg-white rounded-xl border border-border p-5 shadow-card h-28 animate-pulse"
@@ -262,7 +304,7 @@ export default function ReportesDuenoPage() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
             <StatCard
               label="Ventas totales"
               value={formatCurrency(data?.resumen.ventasTotales ?? 0)}
@@ -275,6 +317,13 @@ export default function ReportesDuenoPage() {
               value={data?.resumen.pedidosPagados ?? 0}
               icon={ClipboardList}
               description="No incluye cancelados"
+            />
+
+            <StatCard
+              label="Ticket promedio"
+              value={formatCurrency(data?.resumen.ticketPromedio ?? 0)}
+              icon={ReceiptText}
+              description="Promedio por pedido pagado"
             />
 
             <StatCard
@@ -477,6 +526,54 @@ export default function ReportesDuenoPage() {
                   ))
                 )}
               </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-border shadow-card overflow-hidden">
+            <div className="px-5 py-4 border-b border-border">
+              <h3 className="font-semibold text-text">Ventas por método de pago</h3>
+              <p className="text-xs text-text-muted mt-1">
+                Distribución de ventas pagadas según el método registrado
+              </p>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 border-b border-border">
+                  <tr className="text-left text-text-muted">
+                    <th className="px-5 py-3 font-medium">Método de pago</th>
+                    <th className="px-5 py-3 font-medium text-right">Pedidos</th>
+                    <th className="px-5 py-3 font-medium text-right">Total</th>
+                  </tr>
+                </thead>
+
+                <tbody className="divide-y divide-border">
+                  {ventasPorMetodoPago.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={3}
+                        className="px-5 py-8 text-center text-text-muted"
+                      >
+                        No hay métodos de pago registrados en el periodo
+                      </td>
+                    </tr>
+                  ) : (
+                    ventasPorMetodoPago.map((item) => (
+                      <tr key={item.metodoPago} className="hover:bg-gray-50">
+                        <td className="px-5 py-4 font-medium text-text">
+                          {item.metodoPago}
+                        </td>
+                        <td className="px-5 py-4 text-right text-text-muted">
+                          {item.pedidos}
+                        </td>
+                        <td className="px-5 py-4 text-right font-semibold text-text">
+                          {formatCurrency(item.total)}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
 

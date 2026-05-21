@@ -70,6 +70,12 @@ export interface ReporteSucursalFiltro {
   nombre: string;
 }
 
+export interface ReporteMetodoPago {
+  metodoPago: string;
+  total: number;
+  pedidos: number;
+}
+
 export interface ReporteTopProducto {
   productoId: string;
   producto: string;
@@ -109,6 +115,7 @@ export interface ReporteDueno {
   resumen: {
     ventasTotales: number;
     pedidosPagados: number;
+    ticketPromedio: number;
     productoMasVendido: ReporteTopProducto | null;
     sucursalLider: {
       id: string;
@@ -118,6 +125,7 @@ export interface ReporteDueno {
   };
   ventasPorDia: ReporteVentaDia[];
   ventasPorSucursal: ReporteSucursalVentas[];
+  ventasPorMetodoPago: ReporteMetodoPago[];
   topProductos: ReporteTopProducto[];
   detallePedidos: ReporteDetallePedido[];
 }

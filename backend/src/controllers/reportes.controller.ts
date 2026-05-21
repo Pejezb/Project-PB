@@ -71,11 +71,13 @@ export async function getReporteDueno(req: Request, res: Response): Promise<void
         resumen: {
           ventasTotales: 0,
           pedidosPagados: 0,
+          ticketPromedio: 0,
           productoMasVendido: null,
           sucursalLider: null,
         },
         ventasPorDia: [],
         ventasPorSucursal: [],
+        ventasPorMetodoPago: [],
         topProductos: [],
         detallePedidos: [],
       });
@@ -111,6 +113,7 @@ export async function getReporteDueno(req: Request, res: Response): Promise<void
       pedidosPagados,
       pedidosBase,
       ventasPorSucursalRaw,
+      ventasPorMetodoPagoRaw,
       topProductosRaw,
       detallePedidosRaw,
     ] = await Promise.all([
@@ -134,6 +137,14 @@ export async function getReporteDueno(req: Request, res: Response): Promise<void
 
       prisma.pedido.groupBy({
         by: ['sucursalId'],
+        where: pedidoWhere,
+        _sum: { total: true },
+        _count: { _all: true },
+        orderBy: { _sum: { total: 'desc' } },
+      }),
+
+      prisma.pedido.groupBy({
+        by: ['metodoPago'],
         where: pedidoWhere,
         _sum: { total: true },
         _count: { _all: true },
@@ -221,6 +232,17 @@ export async function getReporteDueno(req: Request, res: Response): Promise<void
       pedidos: item._count._all,
     }));
 
+    const ventasTotales = Number(ventasAggregate._sum.total ?? 0);
+
+    const ticketPromedio =
+      pedidosPagados > 0 ? ventasTotales / pedidosPagados : 0;
+
+    const ventasPorMetodoPago = ventasPorMetodoPagoRaw.map((item) => ({
+      metodoPago: item.metodoPago?.trim() || 'No registrado',
+      total: Number(item._sum.total ?? 0),
+      pedidos: item._count._all,
+    }));
+
     const productosIds = topProductosRaw.map((item) => item.productoId);
 
     const productos = await prisma.producto.findMany({
@@ -272,13 +294,15 @@ export async function getReporteDueno(req: Request, res: Response): Promise<void
         sucursales: sucursalesDueno,
       },
       resumen: {
-        ventasTotales: Number(ventasAggregate._sum.total ?? 0),
+        ventasTotales,
         pedidosPagados,
+        ticketPromedio,
         productoMasVendido,
         sucursalLider,
       },
       ventasPorDia,
       ventasPorSucursal,
+      ventasPorMetodoPago,
       topProductos,
       detallePedidos,
     });
