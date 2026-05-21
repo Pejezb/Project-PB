@@ -61,19 +61,24 @@ const formatDate = (value?: string) => {
 export default function UsuariosPage() {
   const qc = useQueryClient();
   const { user } = useAuthStore();
+
   const isDueno = user?.rol === 'DUENO';
+  const isAdmin = user?.rol === 'ADMIN';
+
+  const canViewSucursal = isDueno || isAdmin;
+  const canEditSucursal = isDueno;
+  const canManageRoles = isDueno;
+  const canAssignAdminRole = isDueno;
 
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Usuario | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [isModalEditing, setIsModalEditing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sucursalFilter, setSucursalFilter] = useState('TODAS');
   const [rolFilter, setRolFilter] = useState('TODOS');
   const [estadoFilter, setEstadoFilter] = useState('TODOS');
 
 
-  // queryKey incluye sucursalId para que DUENO y ADMIN nunca compartan cache
   const { data: usuarios = [], isLoading } = useQuery({
     queryKey: ['usuarios', user?.sucursalId ?? 'all'],
     queryFn: () => usuariosService.getAll(),
@@ -86,13 +91,7 @@ export default function UsuariosPage() {
       const matchesSearch =
         !search ||
         usuario.nombre.toLowerCase().includes(search) ||
-        usuario.email.toLowerCase().includes(search) ||
-        usuario.sucursal?.nombre?.toLowerCase().includes(search);
-
-      const matchesSucursal =
-        sucursalFilter === 'TODAS' ||
-        usuario.sucursalId === sucursalFilter ||
-        usuario.sucursal?.id === sucursalFilter;
+        usuario.email.toLowerCase().includes(search);
 
       const matchesRol =
         rolFilter === 'TODOS' ||
@@ -103,25 +102,38 @@ export default function UsuariosPage() {
         (estadoFilter === 'ACTIVO' && usuario.activo) ||
         (estadoFilter === 'INACTIVO' && !usuario.activo);
 
-      return matchesSearch && matchesSucursal && matchesRol && matchesEstado;
+      return matchesSearch && matchesRol && matchesEstado;
     });
-  }, [usuarios, searchTerm, sucursalFilter, rolFilter, estadoFilter]);
+  }, [usuarios, searchTerm, rolFilter, estadoFilter]);
 
   const { data: sucursales = [] } = useQuery({
     queryKey: ['sucursales'],
     queryFn: sucursalesService.getAll,
-    enabled: isDueno,
+    enabled: canViewSucursal,
   });
 
   const sucursalesDisponibles = useMemo(() => {
+    if (user?.rol === 'ADMIN') {
+      return sucursales
+        .filter((s) => s.id === user.sucursalId)
+        .map((sucursal) => ({
+          id: sucursal.id,
+          nombre: sucursal.nombre,
+        }));
+    }
+
     return sucursales.map((sucursal) => ({
       id: sucursal.id,
       nombre: sucursal.nombre,
     }));
-  }, [sucursales]);
+  }, [sucursales, user]);
 
   const crear = useMutation({
-    mutationFn: () => usuariosService.create(form),
+    mutationFn: () =>
+      usuariosService.create({
+        ...form,
+        rol: canAssignAdminRole ? form.rol : 'MESERO',
+      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['usuarios', user?.sucursalId ?? 'all'] });
       toast.success('Usuario creado');
@@ -134,7 +146,16 @@ export default function UsuariosPage() {
     mutationFn: () => usuariosService.update(editing!.id, {
       nombre: form.nombre.trim(),
       email: form.email.trim().toLowerCase(),
-      rol: form.rol,
+      ...(isDueno
+        ? { rol: form.rol }
+        : isAdmin
+          ? {
+            rol:
+              form.rol === 'MESERO' || form.rol === 'COCINERO'
+                ? form.rol
+                : editing?.rol,
+          }
+          : {}),
       activo: form.activo,
       sucursalId: form.sucursalId || undefined,
       ...(form.password ? { password: form.password } : {}),
@@ -159,7 +180,10 @@ export default function UsuariosPage() {
   const openNew = () => {
     setEditing(null);
     setIsModalEditing(true);
-    setForm({ ...emptyForm, sucursalId: isDueno ? '' : (user?.sucursalId ?? '') });
+    setForm({
+      ...emptyForm,
+      sucursalId: user?.sucursalId ?? '',
+    });
     setShowModal(true);
   };
 
@@ -254,39 +278,18 @@ export default function UsuariosPage() {
       ) : (
         <>
           <div className="bg-white rounded-xl border border-border shadow-card p-4 mb-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">
-                  Buscar
-                </label>
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Nombre, email o sucursal"
-                  className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                />
-              </div>
-
-              {isDueno && (
-                <div>
-                  <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">
-                    Sucursal
-                  </label>
-                  <select
-                    value={sucursalFilter}
-                    onChange={(e) => setSucursalFilter(e.target.value)}
-                    className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                  >
-                    <option value="TODAS">Todas las sucursales</option>
-                    {sucursalesDisponibles.map((sucursal) => (
-                      <option key={sucursal.id} value={sucursal.id}>
-                        {sucursal.nombre}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">              <div>
+              <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">
+                Buscar
+              </label>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Nombre o email"
+                className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              />
+            </div>
 
               <div>
                 <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">
@@ -326,12 +329,11 @@ export default function UsuariosPage() {
                 <span className="font-semibold text-text">{usuarios.length}</span> usuarios
               </p>
 
-              {(searchTerm || sucursalFilter !== 'TODAS' || rolFilter !== 'TODOS' || estadoFilter !== 'TODOS') && (
+              {(searchTerm || rolFilter !== 'TODOS' || estadoFilter !== 'TODOS') && (
                 <button
                   type="button"
                   onClick={() => {
                     setSearchTerm('');
-                    setSucursalFilter('TODAS');
                     setRolFilter('TODOS');
                     setEstadoFilter('TODOS');
                   }}
@@ -357,7 +359,7 @@ export default function UsuariosPage() {
                     <th className="px-5 py-3 text-left text-xs font-bold text-text-muted uppercase tracking-wide">
                       Email
                     </th>
-                    {isDueno && (
+                    {canViewSucursal && (
                       <th className="px-5 py-3 text-left text-xs font-bold text-text-muted uppercase tracking-wide">
                         Sucursal
                       </th>
@@ -396,7 +398,7 @@ export default function UsuariosPage() {
                         {u.email}
                       </td>
 
-                      {isDueno && (
+                      {canViewSucursal && (
                         <td className="px-5 py-4 text-sm text-text-muted">
                           {u.sucursal?.nombre ?? 'Sin sucursal'}
                         </td>
@@ -468,9 +470,8 @@ export default function UsuariosPage() {
                     placeholder="Juan Pérez"
                     required
                     disabled={isReadOnly}
-                    className={`w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${
-                      isReadOnly ? 'bg-gray-100 text-text-muted cursor-not-allowed' : 'bg-white text-text'
-                    }`}
+                    className={`w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${isReadOnly ? 'bg-gray-100 text-text-muted cursor-not-allowed' : 'bg-white text-text'
+                      }`}
                   />
                 </div>
 
@@ -499,7 +500,7 @@ export default function UsuariosPage() {
                     type="password"
                     value={form.password}
                     onChange={e => handleChange('password', e.target.value)}
-                    placeholder={editing ? '••••••••' : 'Mínimo 6 caracteres'}
+                    placeholder={editing ? '******' : 'Mínimo 6 caracteres'}
                     required={!editing}
                     minLength={editing ? undefined : 6}
                     disabled={isReadOnly}
@@ -509,37 +510,40 @@ export default function UsuariosPage() {
 
                 <div>
                   <label className="text-sm font-medium text-text block mb-1">Rol *</label>
+
                   <select
                     value={form.rol}
                     onChange={e => handleChange('rol', e.target.value)}
                     disabled={isReadOnly}
-                    className={`w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${
-                      isReadOnly ? 'bg-gray-100 text-text-muted cursor-not-allowed' : 'bg-white text-text'
-                    }`}
+                    className={`w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${isReadOnly
+                      ? 'bg-gray-100 text-text-muted cursor-not-allowed'
+                      : 'bg-white text-text'
+                      }`}
                   >
-                    <option value="ADMIN">Administrador</option>
+                    {isDueno && (
+                      <option value="ADMIN">Administrador</option>
+                    )}
+
                     <option value="MESERO">Mesero</option>
                     <option value="COCINERO">Cocinero</option>
                   </select>
                 </div>
 
-                {isDueno && (
+                {canViewSucursal && (
                   <div>
-                    <label className="text-sm font-medium text-text block mb-1">Sucursal *</label>
-                    <select
-                      value={form.sucursalId}
-                      onChange={e => handleChange('sucursalId', e.target.value)}
-                      required
-                      disabled={isReadOnly}
-                      className={`w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${
-                        isReadOnly ? 'bg-gray-100 text-text-muted cursor-not-allowed' : 'bg-white text-text'
-                      }`}
-                    >
-                      <option value="">Selecciona una sucursal</option>
-                      {sucursales.map(s => (
-                        <option key={s.id} value={s.id}>{s.nombre}</option>
-                      ))}
-                    </select>
+                    <label className="text-sm font-medium text-text block mb-1">
+                      Sucursal
+                    </label>
+
+                    <input
+                      value={
+                        editing?.sucursal?.nombre ||
+                        sucursales.find(s => s.id === form.sucursalId)?.nombre ||
+                        'Sin sucursal'
+                      }
+                      disabled
+                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-gray-100 text-text-muted cursor-not-allowed"
+                    />
                   </div>
                 )}
 
@@ -575,11 +579,10 @@ export default function UsuariosPage() {
                       type="button"
                       disabled={isReadOnly}
                       onClick={() => setForm(prev => ({ ...prev, activo: !prev.activo }))}
-                      className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors ${
-                        form.activo
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-gray-200 text-gray-600'
-                      } ${isReadOnly ? 'opacity-70 cursor-not-allowed' : 'hover:brightness-95'}`}
+                      className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors ${form.activo
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-gray-200 text-gray-600'
+                        } ${isReadOnly ? 'opacity-70 cursor-not-allowed' : 'hover:brightness-95'}`}
                     >
                       {form.activo ? 'Activo' : 'Inactivo'}
                     </button>

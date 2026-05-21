@@ -17,23 +17,23 @@ import { cn } from '../../utils/cn';
 import { useAuthStore } from '../../store/authStore';
 
 const navDueno = [
-  { to: '/dashboard',    icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/sucursales',   icon: Building2,       label: 'Sucursales' },
-  { to: '/usuarios',     icon: Users,           label: 'Usuarios' },
-  { to: '/reportes',     icon: BarChart3,       label: 'Reportes' },
+  { to: '/dashboard',      icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/sucursales',     icon: Building2,       label: 'Sucursales' },
+  { to: '/usuarios',       icon: Users,           label: 'Usuarios' },
+  { to: '/reportes',       icon: BarChart3,       label: 'Reportes' },
   { to: '/configuracion',  icon: Settings,        label: 'Configuración' },
 ];
 
 const navAdmin = [
-  { to: '/dashboard',     icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/reportes',      icon: BarChart3,       label: 'Reportes' },
-  { to: '/pedidos',       icon: ClipboardList,   label: 'Pedidos' },
-  { to: '/mesas',         icon: Grid2X2,         label: 'Mesas' },
-  { to: '/menu',          icon: UtensilsCrossed, label: 'Menú' },
-  { to: '/personal',      icon: Users,           label: 'Personal' },
-  { to: '/asistencias',   icon: CalendarCheck2,  label: 'Asistencias' },
+  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/reportes', icon: BarChart3, label: 'Reportes' },
+  { to: '/pedidos', icon: ClipboardList, label: 'Pedidos' },
+  { to: '/mesas', icon: Grid2X2, label: 'Mesas' },
+  { to: '/menu', icon: UtensilsCrossed, label: 'Menú' },
+  { to: '/usuarios', icon: Users, label: 'Personal' },
+  { to: '/asistencias', icon: CalendarCheck2, label: 'Asistencias' },
 
-  { to: '/configuracion', icon: Settings,        label: 'Configuración' },
+  { to: '/configuracion', icon: Settings, label: 'Configuración' },
 ];
 
 const navMesero = [
@@ -57,10 +57,10 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const navigate = useNavigate();
 
   const navItems =
-    user?.rol === 'DUENO'    ? navDueno   :
-    user?.rol === 'ADMIN'    ? navAdmin   :
-    user?.rol === 'MESERO'   ? navMesero  :
-    user?.rol === 'COCINERO' ? navCocinero : [];
+    user?.rol === 'DUENO' ? navDueno :
+      user?.rol === 'ADMIN' ? navAdmin :
+        user?.rol === 'MESERO' ? navMesero :
+          user?.rol === 'COCINERO' ? navCocinero : [];
 
   const handleLogout = () => {
     logout();
@@ -69,7 +69,6 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
   return (
     <>
-      {/* Overlay móvil */}
       {open && (
         <div className="fixed inset-0 bg-black/30 z-20 lg:hidden" onClick={onClose} />
       )}
@@ -79,7 +78,6 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         'transition-transform duration-300 ease-in-out',
         open ? 'translate-x-0' : '-translate-x-full',
       )}>
-        {/* Logo */}
         <div className="flex items-center justify-between px-5 py-5 border-b border-border">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
@@ -92,7 +90,6 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           </button>
         </div>
 
-        {/* Sucursal activa (si no es dueño) */}
         {user?.sucursal && (
           <div className="px-4 py-3 bg-green-50 border-b border-border">
             <p className="text-xs text-text-muted font-medium uppercase tracking-wide">Sucursal activa</p>
@@ -100,7 +97,6 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           </div>
         )}
 
-        {/* Nav */}
         <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
           {navItems.map(({ to, icon: Icon, label }) => (
             <NavLink
@@ -121,7 +117,6 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           ))}
         </nav>
 
-        {/* Footer usuario */}
         <div className="border-t border-border p-3">
           <div className="flex items-center gap-3 px-2 py-2.5 rounded-lg hover:bg-background transition-colors group cursor-pointer"
             onClick={() => navigate('/configuracion')}>

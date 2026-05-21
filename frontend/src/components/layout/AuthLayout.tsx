@@ -5,10 +5,10 @@ import { Sidebar } from './Sidebar';
 import { useAuthStore } from '../../store/authStore';
 
 const pageTitles: Record<string, string> = {
-  '/dashboard':    'Dashboard',
-  '/sucursales':   'Mis Sucursales',
-  '/usuarios':     'Usuarios',
-  '/configuracion':'Configuración',
+  '/dashboard': 'Dashboard',
+  '/sucursales': 'Mis Sucursales',
+  '/usuarios': 'Usuarios',
+  '/configuracion': 'Configuración',
 };
 
 export function AuthLayout() {
@@ -19,12 +19,10 @@ export function AuthLayout() {
 
   const title = pageTitles[location.pathname] ?? 'RestaurantOS';
 
-  // Cerrar sidebar en móvil al cambiar de ruta
   useEffect(() => {
     if (window.innerWidth < 1024) setSidebarOpen(false);
   }, [location.pathname]);
 
-  // Redirigir si no hay sesión
   useEffect(() => {
     if (!token || !user) navigate('/login', { replace: true });
   }, [token, user]);
@@ -32,12 +30,8 @@ export function AuthLayout() {
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-
-      {/* Spacer desktop */}
       <div className={`hidden lg:block flex-shrink-0 transition-all duration-300 ${sidebarOpen ? 'w-64' : 'w-0'}`} />
-
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Header */}
         <header className="h-16 bg-white border-b border-border flex items-center justify-between px-4 lg:px-6 flex-shrink-0">
           <div className="flex items-center gap-3">
             <button
@@ -55,14 +49,11 @@ export function AuthLayout() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {/* El equipo puede agregar notificaciones aquí */}
             <button className="p-2 rounded-lg text-text-muted hover:text-text hover:bg-background transition-colors">
               <Bell size={18} />
             </button>
           </div>
         </header>
-
-        {/* Contenido */}
         <main className="flex-1 overflow-y-auto p-4 lg:p-6">
           <Outlet />
         </main>

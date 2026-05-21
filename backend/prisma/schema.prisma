@@ -44,6 +44,9 @@ model Usuario {
   rol          Rol
   activo       Boolean  @default(true)
 
+  intentosFallidos  Int       @default(0)
+  bloqueadoHasta    DateTime?
+
   sucursalId   String?
   sucursal     Sucursal? @relation("UsuarioSucursal", fields: [sucursalId], references: [id], onDelete: Cascade)
 

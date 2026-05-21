@@ -55,15 +55,48 @@ export default function MenuPage() {
     tipo: 'COCINA' as 'COCINA' | 'COMPLEMENTO',
   });
 
-  // FETCH
   const cargarCategorias = async () => {
-    const res = await fetch(`${API}/categorias`);
-    setCategorias(await res.json());
+    try {
+      const res = await fetch(`${API}/categorias`);
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(
+          data.error || 'Error cargando categorías'
+        );
+      }
+
+      setCategorias(
+        Array.isArray(data) ? data : []
+      );
+
+    } catch (error) {
+      console.error(error);
+      setCategorias([]);
+    }
   };
 
   const cargarProductos = async () => {
-    const res = await fetch(`${API}/productos`);
-    setProductos(await res.json());
+    try {
+      const res = await fetch(`${API}/productos`);
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(
+          data.error || 'Error cargando productos'
+        );
+      }
+
+      setProductos(
+        Array.isArray(data) ? data : []
+      );
+
+    } catch (error) {
+      console.error(error);
+      setProductos([]);
+    }
   };
 
   useEffect(() => {
@@ -71,7 +104,6 @@ export default function MenuPage() {
     cargarProductos();
   }, []);
 
-  // CATEGORÍA
   const crearCategoria = async () => {
     if (!nuevaCategoria.trim()) return;
 
@@ -89,7 +121,6 @@ export default function MenuPage() {
     cargarCategorias();
   };
 
-  // PRODUCTO
   const crearProducto = async () => {
     if (!nuevoProducto.nombre || !nuevoProducto.precio || !nuevoProducto.categoriaId)
       return;
@@ -147,16 +178,21 @@ export default function MenuPage() {
     cargarProductos();
   };
 
-  // FILTRO
-  const productosFiltrados = productos.filter((p) => {
-    const okBusqueda = p.nombre.toLowerCase().includes(busqueda.toLowerCase());
-    const okCategoria =
-      categoriaActiva === 'Todos' || p.categoria.nombre === categoriaActiva;
+  const productosFiltrados = Array.isArray(productos)
+    ? productos.filter((p) => {
+      const okBusqueda =
+        p.nombre
+          .toLowerCase()
+          .includes(busqueda.toLowerCase());
 
-    return okBusqueda && okCategoria;
-  });
+      const okCategoria =
+        categoriaActiva === 'Todos' ||
+        p.categoria.nombre === categoriaActiva;
 
-  // Comprime la imagen antes de enviarla (reduce peso ~80%)
+      return okBusqueda && okCategoria;
+    })
+    : [];
+
   const comprimirImagen = (file: File, maxWidth = 800, quality = 0.7): Promise<string> => {
     return new Promise((resolve) => {
       const img = new Image();
@@ -223,28 +259,27 @@ export default function MenuPage() {
       <div className="flex flex-wrap gap-3 mb-8">
         <button
           onClick={() => setCategoriaActiva('Todos')}
-          className={`px-5 py-2 rounded-full text-sm font-medium ${
-            categoriaActiva === 'Todos'
-              ? 'bg-primary text-white'
-              : 'bg-white border border-border'
-          }`}
+          className={`px-5 py-2 rounded-full text-sm font-medium ${categoriaActiva === 'Todos'
+            ? 'bg-primary text-white'
+            : 'bg-white border border-border'
+            }`}
         >
           Todos
         </button>
 
-        {categorias.map((c) => (
-          <button
-            key={c.id}
-            onClick={() => setCategoriaActiva(c.nombre)}
-            className={`px-5 py-2 rounded-full text-sm font-medium ${
-              categoriaActiva === c.nombre
+        {Array.isArray(categorias) &&
+          categorias.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => setCategoriaActiva(c.nombre)}
+              className={`px-5 py-2 rounded-full text-sm font-medium ${categoriaActiva === c.nombre
                 ? 'bg-primary text-white'
                 : 'bg-white border border-border'
-            }`}
-          >
-            {c.nombre}
-          </button>
-        ))}
+                }`}
+            >
+              {c.nombre}
+            </button>
+          ))}
       </div>
 
       {/* PRODUCTOS */}
@@ -258,11 +293,10 @@ export default function MenuPage() {
               <img src={producto.imagen} className="w-full h-52 object-cover" />
 
               <div
-                className={`absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-semibold ${
-                  producto.tipo === 'COCINA'
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-blue-500 text-white'
-                }`}
+                className={`absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-semibold ${producto.tipo === 'COCINA'
+                  ? 'bg-orange-500 text-white'
+                  : 'bg-blue-500 text-white'
+                  }`}
               >
                 {producto.tipo === 'COCINA' ? 'Cocina' : 'Complemento'}
               </div>
@@ -660,11 +694,12 @@ export default function MenuPage() {
                   }}
                   className="w-full border border-border rounded-xl px-4 py-3 outline-none"
                 >
-                  {categorias.map((categoria) => (
-                    <option key={categoria.id} value={categoria.id}>
-                      {categoria.nombre}
-                    </option>
-                  ))}
+                  {Array.isArray(categorias) &&
+                    categorias.map((categoria) => (
+                      <option key={categoria.id} value={categoria.id}>
+                        {categoria.nombre}
+                      </option>
+                    ))}
                 </select>
               </div>
 

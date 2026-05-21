@@ -1,24 +1,26 @@
 import { Router } from 'express';
 import { authMiddleware, roleMiddleware } from '../middleware/auth.middleware';
-import { login, me } from '../controllers/auth.controller';
+import { login, me, logout } from '../controllers/auth.controller';
 import { getSucursales, getSucursalById, createSucursal, updateSucursal, toggleSucursal, deleteSucursal } from '../controllers/sucursales.controller';
 import { getUsuarios, createUsuario, updateUsuario, deleteUsuario, updateMe, changeMyPassword } from '../controllers/usuarios.controller';
 import { getDashboardDueno, getDashboardSucursal } from '../controllers/dashboard.controller';
 import { getAsistencias, toggleAsistencia } from '../controllers/asistencias.controller';
-import { getReporteDueno } from '../controllers/reportes.controller';
 import { crearMesa, getMesas, actualizarMesa } from '../controllers/mesa.controller';
-import {crearCategoria, listarCategorias, crearProducto, listarProductos, actualizarProducto, eliminarProducto, obtenerProducto, toggleDisponibilidad} from '../controllers/menu.controller';
+import { crearCategoria, listarCategorias, crearProducto, listarProductos, actualizarProducto, eliminarProducto, obtenerProducto, toggleDisponibilidad } from '../controllers/menu.controller';
+import { getReporteDueno, getReportes, exportarReporteExcel } from '../controllers/reportes.controller';
+import { getPedidosAdmin } from '../controllers/pedidos-admin.controller';
 
 const router = Router();
-// ── Auth (público) ────────────────────────────────────────────────────────────
+// Auth
 router.post('/auth/login', login);
 router.get('/auth/me', authMiddleware, me);
+router.post('/auth/logout', authMiddleware, logout);
 
-// ── Dashboard ─────────────────────────────────────────────────────────────────
+// Dashboard
 router.get('/dashboard', authMiddleware, roleMiddleware('DUENO'), getDashboardDueno);
 router.get('/dashboard/sucursal/:id', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), getDashboardSucursal);
 
-// ── Sucursales (solo DUEÑO y ADMIN) ──────────────────────────────────────────
+// Sucursales
 router.get('/sucursales', authMiddleware, roleMiddleware('DUENO'), getSucursales);
 router.get('/sucursales/:id', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), getSucursalById);
 router.post('/sucursales', authMiddleware, roleMiddleware('DUENO'), createSucursal);
@@ -26,8 +28,7 @@ router.patch('/sucursales/:id', authMiddleware, roleMiddleware('DUENO', 'ADMIN')
 router.patch('/sucursales/:id/toggle', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), toggleSucursal);
 router.delete('/sucursales/:id', authMiddleware, roleMiddleware('DUENO'), deleteSucursal);
 
-// ── Usuarios ──────────────────────────────────────────────────────────────────
-// Perfil propio (todos los roles) — debe ir ANTES de /:id
+// Usuarios
 router.patch('/usuarios/me', authMiddleware, updateMe);
 router.patch('/usuarios/me/password', authMiddleware, changeMyPassword);
 
@@ -36,14 +37,16 @@ router.post('/usuarios', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), creat
 router.patch('/usuarios/:id', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), updateUsuario);
 router.delete('/usuarios/:id', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), deleteUsuario);
 
-// Asistencias ────────────────────────────────────────────────────────────────
+// Asistencias
 router.get('/asistencias', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), getAsistencias);
 router.post('/asistencias/:id', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), toggleAsistencia);
 
-// ── Reportes ─────────────────────────────────────────────────────────────────
+// Reportes
 router.get('/reportes/dueno', authMiddleware, roleMiddleware('DUENO'), getReporteDueno);
+router.get('/reportes', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), getReportes);
+router.get('/reportes/exportar', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), exportarReporteExcel);
 
-// Mesas ────────────────────────────────────────────────────────────────
+// Mesas
 router.get('/mesas', authMiddleware, roleMiddleware('ADMIN'), getMesas);
 router.post('/mesas', authMiddleware, roleMiddleware('ADMIN'), crearMesa);
 router.patch('/mesas/:id', authMiddleware, roleMiddleware('ADMIN'), actualizarMesa);
@@ -59,8 +62,15 @@ router.put('/productos/:id', actualizarProducto);
 router.delete('/productos/:id', eliminarProducto);
 router.patch('/productos/:id/toggle', toggleDisponibilidad);
 
-// ── Placeholder: rutas que el equipo implementará ────────────────────────────
-// router.use('/mesas',    authMiddleware, mesasRouter);
+// Reportes
+router.get('/reportes', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), getReportes);
+router.get('/reportes/exportar', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), exportarReporteExcel);
+
+// Pedidos
+router.get('/pedidos', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), getPedidosAdmin);
+
+
+
 // router.use('/pedidos',  authMiddleware, pedidosRouter);
 // router.use('/menu',     authMiddleware, menuRouter);
 // router.use('/reportes', authMiddleware, reportesRouter);

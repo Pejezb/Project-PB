@@ -5,6 +5,15 @@ import { formatCurrency } from '../../utils/cn';
 import { dashboardService } from '../../services/dashboard.service';
 import DuenoDashboard from './DuenoDashboard';
 import type { DashboardDueno, DashboardSucursal } from '../../types';
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+} from 'recharts';
 
 function StatCard({
   label,
@@ -114,6 +123,81 @@ export default function DashboardPage() {
           value={`${data.mesasOcupadas ?? 0} / ${data.totalMesas ?? 0}`}
           icon={Users}
         />
+      </div>
+
+      <div className="bg-white rounded-xl border border-border shadow-card p-5">
+        <div className="mb-4">
+          <h3 className="font-semibold text-text">
+            Productos más vendidos
+          </h3>
+
+          <p className="text-sm text-text-muted">
+            Rendimiento de ventas del día
+          </p>
+        </div>
+
+        {(data.topProductos ?? []).length === 0 ? (
+          <div className="py-10 text-center text-sm text-text-muted">
+            No hay información para mostrar
+          </div>
+        ) : (
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={(data.topProductos ?? []).map((p) => ({
+                  nombre:
+                    p.nombre.length > 12
+                      ? `${p.nombre.slice(0, 12)}...`
+                      : p.nombre,
+                  cantidad: p.cantidad,
+                }))}
+              >
+                <CartesianGrid
+                  stroke="#dcfce7"
+                  strokeDasharray="3 3"
+                  vertical={false}
+                />
+
+                <XAxis
+                  dataKey="nombre"
+                  tick={{
+                    fontSize: 12,
+                    fill: '#166534',
+                  }}
+                  axisLine={{ stroke: '#bbf7d0' }}
+                  tickLine={{ stroke: '#bbf7d0' }}
+                />
+
+                <YAxis
+                  allowDecimals={false}
+                  tick={{
+                    fill: '#166534',
+                  }}
+                  axisLine={{ stroke: '#bbf7d0' }}
+                  tickLine={{ stroke: '#bbf7d0' }}
+                />
+
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: '12px',
+                    border: '1px solid #bbf7d0',
+                    backgroundColor: '#f0fdf4',
+                  }}
+                  labelStyle={{
+                    color: '#166534',
+                    fontWeight: 600,
+                  }}
+                />
+
+                <Bar
+                  dataKey="cantidad"
+                  fill="#16a34a"
+                  radius={[8, 8, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </div>
 
       <div className="bg-white rounded-xl border border-border shadow-card overflow-hidden">
