@@ -6,20 +6,9 @@ export const api = axios.create({
   withCredentials: true,
 });
 
-const forceLogout = () => {
-  useAuthStore.getState().logout();
-  if (window.location.pathname !== '/login') {
-    window.location.href = '/login';
-  }
-};
-
 api.interceptors.request.use((config) => {
   const token = useAuthStore.getState().token;
-
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-
+  if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
@@ -27,27 +16,17 @@ api.interceptors.response.use(
   (res) => res,
   (error) => {
     const status = error.response?.status;
-    const data = error.response?.data;
-
-    const code = data?.code;
-    const msg = data?.error ?? '';
-
-    if (status === 401) {
-      forceLogout();
-      return Promise.reject(error);
+    if (status === 401 && window.location.pathname !== '/login') {
+      useAuthStore.getState().logout();
+      window.location.href = '/login';
     }
-
     if (status === 403) {
-      if (
-        code === 'ASISTENCIA_REQUERIDA' ||
-        msg.includes('asistencia') ||
-        msg.includes('cerrada')
-      ) {
-        forceLogout();
-        return Promise.reject(error);
+      const msg = error.response?.data?.error ?? '';
+      if (msg.includes('cerrada')) {
+        useAuthStore.getState().logout();
+        window.location.href = '/login';
       }
     }
-
     return Promise.reject(error);
   }
 );

@@ -23,7 +23,7 @@ router.get('/dashboard', authMiddleware, roleMiddleware('DUENO'), getDashboardDu
 router.get('/dashboard/sucursal/:id', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), getDashboardSucursal);
 
 // Sucursales
-router.get('/sucursales', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), getSucursales);
+router.get('/sucursales', authMiddleware, roleMiddleware('DUENO'), getSucursales);
 router.get('/sucursales/:id', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), getSucursalById);
 router.post('/sucursales', authMiddleware, roleMiddleware('DUENO'), createSucursal);
 router.patch('/sucursales/:id', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), updateSucursal);
@@ -68,7 +68,7 @@ router.patch('/productos/:id/toggle', toggleDisponibilidad);
 router.get('/reportes', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), getReportes);
 router.get('/reportes/exportar', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), exportarReporteExcel);
 
-// Pedidos mesero
+// Pedidos mesero (rutas específicas ANTES que las genéricas)
 router.get('/pedidos/activos', authMiddleware, roleMiddleware('MESERO', 'ADMIN'), getPedidosActivos);
 router.post('/pedidos', authMiddleware, roleMiddleware('MESERO'), crearPedido);
 router.patch('/pedidos/:id/items', authMiddleware, roleMiddleware('MESERO'), agregarItems);
