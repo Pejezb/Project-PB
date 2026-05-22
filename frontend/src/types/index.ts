@@ -43,6 +43,7 @@ export interface AuthUser {
   rol: Rol;
   sucursalId?: string;
   sucursal?: { id: string; nombre: string };
+  asistencia ?: boolean;
 }
 
 export interface Mesa {

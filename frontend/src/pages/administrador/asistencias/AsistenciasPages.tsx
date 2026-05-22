@@ -7,7 +7,7 @@ import {
   XCircle,
   Loader2,
 } from 'lucide-react';
-import { useAuthStore } from  "../../../store/authStore";
+import { useAuthStore } from "../../../store/authStore";
 
 export const getAuthHeaders = () => {
   const token = useAuthStore.getState().token;
@@ -82,50 +82,34 @@ export default function AsistenciasPage() {
     }
   };
 
-  const toggleAsistencia = async (id: string) => {
-  try {
-    const empleado = personal.find((p) => p.id === id);
-    if (!empleado) return;
+  const toggleAsistencia = async (id: string, actual: boolean) => {
+    try {
+      const response = await fetch(`${API_URL}/api/asistencias/${id}`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ presente: !actual }),
+      });
 
-    const nuevoEstado = !empleado.asistencia;
+      if (!response.ok) throw new Error('Error');
 
-    setPersonal((prev) =>
-      prev.map((e) =>
-        e.id === id ? { ...e, asistencia: nuevoEstado } : e
-      )
-    );
+      const data = await response.json();
 
-    const response = await fetch(`${API_URL}/api/asistencias/${id}`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify({
-        presente: nuevoEstado,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error('No se pudo guardar la asistencia');
-    }
-
-    const data = await response.json();
-
-    setPersonal((prev) =>
-      prev.map((e) =>
-        e.id === id
-          ? {
+      setPersonal((prev) =>
+        prev.map((e) =>
+          e.id === id
+            ? {
               ...e,
-              asistencia: data.presente,
+              asistencia: data.presente ?? data.asistencia,
               tardanza: data.tardanza,
             }
-          : e
-      )
-    );
-
-  } catch (error) {
-    console.error(error);
-    cargarAsistencias();
-  }
-};
+            : e
+        )
+      );
+    } catch (error) {
+      console.error(error);
+      cargarAsistencias();
+    }
+  };
   const personalFiltrado = useMemo(() => {
     const search = searchTerm.toLowerCase().trim();
 
@@ -446,9 +430,7 @@ export default function AsistenciasPage() {
                       type="checkbox"
                       checked={empleado.asistencia}
                       onChange={() =>
-                        toggleAsistencia(
-                          empleado.id
-                        )
+                        toggleAsistencia(empleado.id, empleado.asistencia)
                       }
                       className="w-4 h-4 rounded border-border accent-primary cursor-pointer"
                     />
@@ -457,13 +439,12 @@ export default function AsistenciasPage() {
                   <td className="px-5 py-4 text-center">
                     <div className="flex flex-col items-center gap-1">
 
-                    <span
-                      className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
-                        empleado.asistencia
+                      <span
+                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${empleado.asistencia
                           ? 'bg-green-100 text-green-700'
                           : 'bg-red-100 text-red-600'
-                      }`}
-                          >
+                          }`}
+                      >
                         {empleado.asistencia ? 'Presente' : 'Ausente'}
                       </span>
 
@@ -471,9 +452,9 @@ export default function AsistenciasPage() {
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-orange-100 text-orange-600">
                           Tardanza
                         </span>
-                        )}
-                      </div>
-                    </td>
+                      )}
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>

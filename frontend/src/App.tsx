@@ -1,22 +1,15 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
-
 import { AuthLayout } from './components/layout/AuthLayout';
-
 import LoginPage from './pages/auth/LoginPage';
-
 import DashboardPage from './pages/dashboard/DashboardPage';
-
 import SucursalesPage from './pages/sucursales/SucursalesPage';
 import SucursalDetallePage from './pages/sucursales/SucursalDetallePage';
-
 import UsuariosPage from './pages/usuarios/UsuariosPage';
-
 import ConfiguracionPage from './pages/configuracion/ConfiguracionPage';
-
 import { useAuthStore } from './store/authStore';
-
+import { ProtectedRoute } from './components/routes/ProtectedRoute';
 import PedidosCocinaPage from './pages/pedidos-cocina/PedidosCocinaPage';
 import MesasPageMesero from './pages/mesero/MesasPage';
 import PedidoPage from './pages/mesero/PedidoPage';
@@ -35,20 +28,6 @@ const qc = new QueryClient({
     },
   },
 });
-
-function RequireAuth({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const { token } = useAuthStore();
-
-  if (!token) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return <>{children}</>;
-}
 
 function RequireDueno({
   children,
@@ -121,9 +100,9 @@ export default function App() {
 
           <Route
             element={
-              <RequireAuth>
+              <ProtectedRoute>
                 <AuthLayout />
-              </RequireAuth>
+              </ProtectedRoute>
             }
           >
             <Route

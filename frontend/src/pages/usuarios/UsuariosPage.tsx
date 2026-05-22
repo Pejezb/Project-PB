@@ -9,6 +9,15 @@ import { useAuthStore } from '../../store/authStore';
 import type { Usuario } from '../../types';
 import toast from 'react-hot-toast';
 
+export const getAuthHeaders = () => {
+  const token = useAuthStore.getState().token;
+
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+};
+
 type Rol = 'ADMIN' | 'MESERO' | 'COCINERO';
 
 interface FormState {
@@ -484,9 +493,8 @@ export default function UsuariosPage() {
                     placeholder="usuario@ejemplo.com"
                     required
                     disabled={isReadOnly}
-                    className={`w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${
-                      isReadOnly ? 'bg-gray-100 text-text-muted cursor-not-allowed' : 'bg-white text-text'
-                    }`}
+                    className={`w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${isReadOnly ? 'bg-gray-100 text-text-muted cursor-not-allowed' : 'bg-white text-text'
+                      }`}
                   />
                 </div>
 
