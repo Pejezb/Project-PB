@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, ShoppingCart, Flame, Salad, Plus, Minus, X, ChevronUp, ShoppingBag } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, Flame, Salad, Plus, Minus, X, ShoppingBag } from 'lucide-react';
 import { productosService } from '../../services/productos.service';
 import { pedidosService } from '../../services/pedidos.service';
 import { useAuthStore } from '../../store/authStore';
@@ -119,8 +119,8 @@ export default function PedidoPage() {
   const titulo = esEdicion
     ? `Añadir a pedido${state.mesaNumero ? ` · Mesa ${state.mesaNumero}` : ''}`
     : tipoPedido === 'PARA_LLEVAR'
-    ? 'Nuevo pedido · Para llevar'
-    : `Nuevo pedido${state.mesaNumero ? ` · Mesa ${state.mesaNumero}` : ''}`;
+      ? 'Nuevo pedido · Para llevar'
+      : `Nuevo pedido${state.mesaNumero ? ` · Mesa ${state.mesaNumero}` : ''}`;
 
   // Panel de orden (compartido entre mobile y desktop)
   const OrdenPanel = () => (
@@ -210,7 +210,6 @@ export default function PedidoPage() {
 
       {/* Contenido principal */}
       {isMobile ? (
-        // ── Layout MÓVIL ──────────────────────────────────────────────
         <div className="flex flex-col flex-1 min-h-0">
           {/* Categorías */}
           <div className="flex gap-2 overflow-x-auto pb-2 mb-3 scrollbar-hide">
@@ -290,11 +289,8 @@ export default function PedidoPage() {
           )}
         </div>
       ) : (
-        // ── Layout DESKTOP ────────────────────────────────────────────
         <div className="flex gap-4 flex-1 min-h-0">
-          {/* Panel izquierdo: productos */}
           <div className="flex-1 flex flex-col min-h-0">
-            {/* Categorías */}
             <div className="flex gap-2 flex-wrap mb-3">
               <button
                 onClick={() => setCategoriaSeleccionada('todos')}
@@ -335,7 +331,6 @@ export default function PedidoPage() {
             </div>
           </div>
 
-          {/* Panel derecho: orden */}
           <div className="w-72 flex-shrink-0 bg-white rounded-2xl border border-border p-4 flex flex-col">
             <OrdenPanel />
           </div>
@@ -345,13 +340,11 @@ export default function PedidoPage() {
   );
 }
 
-// ── Tarjeta de producto ──────────────────────────────────────────────────────
 function ProductoCard({ producto, onAgregar }: { producto: Producto; onAgregar: (p: Producto) => void }) {
   const esCocina = producto.tipo === 'COCINA';
 
   return (
     <div className="bg-white rounded-xl border border-border overflow-hidden flex flex-col">
-      {/* Imagen placeholder */}
       <div className="bg-gray-100 h-20 flex items-center justify-center flex-shrink-0 relative">
         {producto.imagen ? (
           <img src={producto.imagen} alt={producto.nombre} className="w-full h-full object-cover" />
