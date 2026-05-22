@@ -87,6 +87,8 @@ export const marcarPedidoListo = async (
     try {
         const { id } = req.params;
 
+        console.log('Marcando pedido listo:', id);
+
         const pedido = await prisma.pedido.update({
             where: {
                 id,

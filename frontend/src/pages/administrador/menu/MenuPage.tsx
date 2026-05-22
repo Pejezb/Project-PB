@@ -7,16 +7,6 @@ import {
   X,
   ImagePlus,
 } from 'lucide-react';
-import { useAuthStore } from '../../../store/authStore';
-
-const getAuthHeaders = () => {
-  const token = useAuthStore.getState().token;
-
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-};
 
 interface Categoria {
   id: string;
@@ -67,9 +57,7 @@ export default function MenuPage() {
 
   const cargarCategorias = async () => {
     try {
-      const res = await fetch(`${API}/categorias`, {
-        headers: getAuthHeaders(),
-      });
+      const res = await fetch(`${API}/categorias`);
 
       const data = await res.json();
 
@@ -91,9 +79,7 @@ export default function MenuPage() {
 
   const cargarProductos = async () => {
     try {
-      const res = await fetch(`${API}/productos`, {
-        headers: getAuthHeaders(),
-      });
+      const res = await fetch(`${API}/productos`);
 
       const data = await res.json();
 
@@ -123,7 +109,7 @@ export default function MenuPage() {
 
     await fetch(`${API}/categorias`, {
       method: 'POST',
-      headers: getAuthHeaders(),
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         nombre: nuevaCategoria,
         sucursalId: 'sucursal-1',
@@ -141,7 +127,7 @@ export default function MenuPage() {
 
     await fetch(`${API}/productos`, {
       method: 'POST',
-      headers: getAuthHeaders(),
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         nombre: nuevoProducto.nombre,
         descripcion: nuevoProducto.descripcion,
@@ -171,7 +157,7 @@ export default function MenuPage() {
 
     await fetch(`${API}/productos/${productoEditando.id}`, {
       method: 'PUT',
-      headers: getAuthHeaders(),
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         nombre: productoEditando.nombre,
         descripcion: productoEditando.descripcion,
@@ -188,7 +174,7 @@ export default function MenuPage() {
   };
 
   const eliminarProducto = async (id: string) => {
-    await fetch(`${API}/productos/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+    await fetch(`${API}/productos/${id}`, { method: 'DELETE' });
     cargarProductos();
   };
 

@@ -6,7 +6,6 @@ import router from './routes';
 import helmet from 'helmet';
 import { logger } from './utils/logger';
 import rateLimit from 'express-rate-limit';
-import { authMiddleware } from './middleware/auth.middleware';
 
 const app = express();
 const PORT = process.env.PORT || 3001;

@@ -10,7 +10,7 @@ type UserToken = {
     sucursalId: string | null;
 };
 
-const HORA_ENTRADA = "15:00";
+const HORA_ENTRADA = "10:00";
 
 const getUser = (req: Request): UserToken | undefined => {
     return req.user as UserToken | undefined;
@@ -22,27 +22,16 @@ const getFechaSolo = () => {
     return d;
 };
 
-const getHoraLima = (date: Date) => {
-    return new Intl.DateTimeFormat('en-CA', {
-        timeZone: 'America/Lima',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-    }).format(date);
-};
-
 
 const esTardanza = (hora: Date) => {
     const [h, m] = HORA_ENTRADA.split(':').map(Number);
 
-    const horaLima = getHoraLima(hora);
-    const [hActual, mActual] = horaLima.split(':').map(Number);
+    const limite = new Date(hora);
+    limite.setHours(h, m, 0, 0);
 
-    const minutosActual = hActual * 60 + mActual;
-    const minutosLimite = h * 60 + m;
-
-    return minutosActual > minutosLimite;
+    return hora > limite;
 };
+
 
 export const getAsistencias = async (req: Request, res: Response) => {
     try {
@@ -77,15 +66,15 @@ export const getAsistencias = async (req: Request, res: Response) => {
         });
 
         const result = usuarios.map((u) => {
-            const a = u.asistencias?.[0];
+            const a = u.asistencias ?.[0];
 
             return {
                 id: u.id,
                 nombre: u.nombre,
                 rol: u.rol,
-                asistencia: a?.presente ?? false,
-                horaEntrada: a?.horaEntrada ?? null,
-                tardanza: a?.tardanza ?? false,
+                asistencia: a ?.presente ?? false,
+                horaEntrada: a ?.horaEntrada ?? null,
+                tardanza: a ?.tardanza ?? false,
             };
         });
 
@@ -125,6 +114,11 @@ export const toggleAsistencia = async (req: Request, res: Response) => {
         if (!empleado) {
             return res.status(404).json({
                 error: 'Usuario no existe o no pertenece a la sucursal',
+                debug: {
+                    id,
+                    rol: user.rol,
+                    sucursalId: user.sucursalId,
+                },
             });
         }
 
@@ -136,14 +130,14 @@ export const toggleAsistencia = async (req: Request, res: Response) => {
         });
 
         const horaEntrada =
-            presente && !existente?.horaEntrada
+            presente && !existente ?.horaEntrada
                 ? ahora
-                : existente?.horaEntrada ?? null;
+                : existente ?.horaEntrada ?? null;
 
         const tardanza =
-            presente
+            presente && !existente ?.horaEntrada
                 ? esTardanza(ahora)
-                : existente?.tardanza ?? false;
+                : existente ?.tardanza ?? false;
 
         let asistencia;
 
@@ -169,13 +163,7 @@ export const toggleAsistencia = async (req: Request, res: Response) => {
             });
         }
 
-        // ✅ RESPUESTA CORREGIDA (lo que tu frontend espera)
-        return res.json({
-            id: asistencia.id,
-            presente: asistencia.presente,
-            tardanza: asistencia.tardanza,
-            horaEntrada: asistencia.horaEntrada,
-        });
+        return res.json(asistencia);
 
     } catch (error) {
         console.error('ERROR toggleAsistencia:', error);
@@ -183,4 +171,7 @@ export const toggleAsistencia = async (req: Request, res: Response) => {
             message: 'Error al actualizar asistencia',
         });
     }
+
+
 };
+
