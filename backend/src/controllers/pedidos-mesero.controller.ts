@@ -3,7 +3,6 @@ import { PrismaClient, EstadoPedido, EstadoMesa } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// GET /pedidos/activos
 export async function getPedidosActivos(req: Request, res: Response): Promise<void> {
   const sucursalId = req.user!.sucursalId!;
 
@@ -22,7 +21,6 @@ export async function getPedidosActivos(req: Request, res: Response): Promise<vo
   res.json(pedidos);
 }
 
-// POST /pedidos
 export async function crearPedido(req: Request, res: Response): Promise<void> {
   const { mesaId, tipo, items } = req.body;
   const meseroId = req.user!.userId;
@@ -61,7 +59,7 @@ export async function crearPedido(req: Request, res: Response): Promise<void> {
   const pedido = await prisma.pedido.create({
     data: {
       tipo,
-      estado: necesitaCocina ? EstadoPedido.EN_COCINA : EstadoPedido.PENDIENTE,
+      estado: necesitaCocina ? EstadoPedido.LISTO : EstadoPedido.PENDIENTE,
       mesaId: mesaId || null,
       meseroId,
       sucursalId,
@@ -81,7 +79,6 @@ export async function crearPedido(req: Request, res: Response): Promise<void> {
   res.status(201).json(pedido);
 }
 
-// PATCH /pedidos/:id/items
 export async function agregarItems(req: Request, res: Response): Promise<void> {
   const { id } = req.params;
   const { items } = req.body;
@@ -123,9 +120,9 @@ export async function agregarItems(req: Request, res: Response): Promise<void> {
 
   const nuevoTotal = Number(pedido.total || 0) + addedTotal;
   const nuevoEstado =
-    necesitaCocina && pedido.estado === EstadoPedido.PENDIENTE
-      ? EstadoPedido.EN_COCINA
-      : pedido.estado;
+  necesitaCocina && pedido.estado === EstadoPedido.PENDIENTE
+    ? EstadoPedido.PENDIENTE
+    : EstadoPedido.LISTO;
 
   const actualizado = await prisma.pedido.update({
     where: { id },
@@ -136,7 +133,6 @@ export async function agregarItems(req: Request, res: Response): Promise<void> {
   res.json(actualizado);
 }
 
-// PATCH /pedidos/:id/entregar
 export async function marcarEntregado(req: Request, res: Response): Promise<void> {
   const { id } = req.params;
   const sucursalId = req.user!.sucursalId!;
@@ -148,14 +144,13 @@ export async function marcarEntregado(req: Request, res: Response): Promise<void
 
   const actualizado = await prisma.pedido.update({
     where: { id },
-    data: { estado: EstadoPedido.ENTREGADO },
+    data: { estado: EstadoPedido.LISTO },
     include: { mesa: true, items: { include: { producto: true } } },
   });
 
   res.json(actualizado);
 }
 
-// PATCH /pedidos/:id/cobrar
 export async function cobrarPedido(req: Request, res: Response): Promise<void> {
   const { id } = req.params;
   const { metodoPago } = req.body;
@@ -192,7 +187,6 @@ export async function cobrarPedido(req: Request, res: Response): Promise<void> {
   res.json({ mensaje: 'Pedido cobrado correctamente' });
 }
 
-// PATCH /pedidos/:id/cancelar
 export async function cancelarPedido(req: Request, res: Response): Promise<void> {
   const { id } = req.params;
   const sucursalId = req.user!.sucursalId!;
