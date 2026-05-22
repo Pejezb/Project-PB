@@ -3,20 +3,25 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// GET /sucursales — todas las sucursales del dueño
 export async function getSucursales(req: Request, res: Response): Promise<void> {
-  const { userId } = req.user!;
+  const { userId, rol, sucursalId } = req.user!;
+
+  const where =
+    rol === 'DUENO'
+      ? { duenoId: userId }
+      : { id: sucursalId ?? '' };
+
   const sucursales = await prisma.sucursal.findMany({
-    where: { duenoId: userId },
+    where,
     include: {
       _count: { select: { usuarios: true, pedidos: true } },
     },
     orderBy: { creadoEn: 'asc' },
   });
+
   res.json(sucursales);
 }
 
-// GET /sucursales/:id — detalle de una sucursal
 export async function getSucursalById(req: Request, res: Response): Promise<void> {
   const sucursal = await prisma.sucursal.findUnique({
     where: { id: req.params.id },
@@ -26,7 +31,6 @@ export async function getSucursalById(req: Request, res: Response): Promise<void
   res.json(sucursal);
 }
 
-// POST /sucursales — crear nueva sucursal
 export async function createSucursal(req: Request, res: Response): Promise<void> {
   const { nombre, direccion, telefono, horarioApertura, horarioCierre, diasOperacion } = req.body;
   if (!nombre) { res.status(400).json({ error: 'El nombre es requerido' }); return; }
@@ -46,7 +50,6 @@ export async function createSucursal(req: Request, res: Response): Promise<void>
   res.status(201).json(sucursal);
 }
 
-// PATCH /sucursales/:id — actualizar datos de la sucursal
 export async function updateSucursal(req: Request, res: Response): Promise<void> {
   const { nombre, direccion, telefono, horarioApertura, horarioCierre, diasOperacion } = req.body;
   const sucursal = await prisma.sucursal.update({
@@ -56,7 +59,6 @@ export async function updateSucursal(req: Request, res: Response): Promise<void>
   res.json(sucursal);
 }
 
-// PATCH /sucursales/:id/toggle — abrir o cerrar el local
 export async function toggleSucursal(req: Request, res: Response): Promise<void> {
   const sucursal = await prisma.sucursal.findUnique({ where: { id: req.params.id } });
   if (!sucursal) { res.status(404).json({ error: 'Sucursal no encontrada' }); return; }
@@ -68,9 +70,6 @@ export async function toggleSucursal(req: Request, res: Response): Promise<void>
   res.json({ abierto: updated.abierto, mensaje: updated.abierto ? 'Sucursal abierta' : 'Sucursal cerrada' });
 }
 
-// DELETE /sucursales/:id — eliminar sucursal
-// Las relaciones tienen onDelete: Cascade en el schema, así que Prisma borra todo en cascada.
-// Validación de negocio: no permitir si hay pedidos sin terminar.
 export async function deleteSucursal(req: Request, res: Response): Promise<void> {
   const sucursal = await prisma.sucursal.findUnique({ where: { id: req.params.id } });
   if (!sucursal) { res.status(404).json({ error: 'Sucursal no encontrada' }); return; }

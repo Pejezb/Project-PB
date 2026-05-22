@@ -82,7 +82,6 @@ export default function MesasPageMesero() {
         </div>
       </div>
 
-      {/* Grid de mesas */}
       {loadingMesas ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {[...Array(8)].map((_, i) => (
@@ -110,7 +109,6 @@ export default function MesasPageMesero() {
                   cfg.bg, cfg.border
                 )}
               >
-                {/* Número y estado */}
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-base font-bold text-text">Mesa {mesa.numero}</p>
@@ -122,7 +120,6 @@ export default function MesasPageMesero() {
                   </span>
                 </div>
 
-                {/* Info del pedido activo */}
                 {pedido && (
                   <div className="text-xs text-text-muted bg-white/60 rounded-lg px-2.5 py-1.5">
                     <p className="font-medium text-text truncate">{pedido.items.length} ítem{pedido.items.length !== 1 ? 's' : ''}</p>
@@ -130,7 +127,6 @@ export default function MesasPageMesero() {
                   </div>
                 )}
 
-                {/* Botón acción */}
                 <button
                   onClick={() => handleMesa(mesa)}
                   className={cn(

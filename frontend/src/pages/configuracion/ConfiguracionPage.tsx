@@ -7,7 +7,7 @@ import { api } from '../../services/api';
 import toast from 'react-hot-toast';
 
 export default function ConfiguracionPage() {
-  const { user, setAuth, token } = useAuthStore();
+  const { user } = useAuthStore();
 
   const [nombre, setNombre] = useState(user?.nombre ?? '');
   const [passActual, setPassActual] = useState('');
@@ -16,14 +16,17 @@ export default function ConfiguracionPage() {
 
   const actualizarPerfil = useMutation({
     mutationFn: async () => {
-      const { data } = await api.patch('/usuarios/me', { nombre });
-      return data;
+      const res = await api.patch('/usuarios/me', { nombre });
+      return res.data;
     },
     onSuccess: (data) => {
-      if (user && token) setAuth({ ...user, nombre: data.nombre }, token);
+      if (user) {
+      }
       toast.success('Perfil actualizado');
     },
-    onError: () => toast.error('Error al actualizar perfil'),
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.error ?? 'Error al actualizar perfil');
+    },
   });
 
   const cambiarPassword = useMutation({
@@ -39,123 +42,135 @@ export default function ConfiguracionPage() {
       setPassNueva('');
       setPassConfirm('');
     },
-    onError: (e: any) => toast.error(e?.response?.data?.error ?? 'Error al cambiar contraseña'),
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.error ?? 'Error al cambiar contraseña');
+    },
   });
 
   const handlePerfilSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nombre.trim()) { toast.error('El nombre no puede estar vacío'); return; }
+
+    if (!nombre.trim()) {
+      toast.error('El nombre no puede estar vacío');
+      return;
+    }
+
     actualizarPerfil.mutate();
   };
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (passNueva.length < 6) { toast.error('La nueva contraseña debe tener al menos 6 caracteres'); return; }
-    if (passNueva !== passConfirm) { toast.error('Las contraseñas no coinciden'); return; }
+
+    if (passNueva.length < 6) {
+      toast.error('La nueva contraseña debe tener al menos 6 caracteres');
+      return;
+    }
+
+    if (passNueva !== passConfirm) {
+      toast.error('Las contraseñas no coinciden');
+      return;
+    }
+
     cambiarPassword.mutate();
   };
 
   return (
     <div className="max-w-lg space-y-6">
 
-      {/* Perfil */}
+      {/* PERFIL */}
       <div className="bg-white rounded-xl border border-border shadow-card p-6">
         <div className="flex items-center gap-2 mb-5">
           <User size={18} className="text-primary" />
-          <h3 className="font-semibold text-text">Información personal</h3>
+          <h3 className="font-semibold">Información personal</h3>
         </div>
 
         <form onSubmit={handlePerfilSubmit} className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-text block mb-1.5">Nombre</label>
+            <label className="text-sm font-medium block mb-1.5">Nombre</label>
             <input
               value={nombre}
-              onChange={e => setNombre(e.target.value)}
-              className="w-full border border-border rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary"
+              onChange={(e) => setNombre(e.target.value)}
+              className="w-full border border-border rounded-lg px-3 py-2"
             />
           </div>
 
           <div>
-            <label className="text-sm font-medium text-text block mb-1.5">Email</label>
+            <label className="text-sm font-medium block mb-1.5">Email</label>
             <input
               value={user?.email ?? ''}
               disabled
-              className="w-full border border-border rounded-lg px-3 py-2 text-sm text-text-muted bg-background cursor-not-allowed"
+              className="w-full border border-border rounded-lg px-3 py-2 bg-background"
             />
-            <p className="text-xs text-text-muted mt-1">El email no se puede cambiar.</p>
           </div>
 
           <div>
-            <label className="text-sm font-medium text-text block mb-1.5">Rol</label>
+            <label className="text-sm font-medium block mb-1.5">Rol</label>
             <input
               value={user?.rol ?? ''}
               disabled
-              className="w-full border border-border rounded-lg px-3 py-2 text-sm text-text-muted bg-background cursor-not-allowed"
+              className="w-full border border-border rounded-lg px-3 py-2 bg-background"
             />
           </div>
 
-          <Button type="submit" loading={actualizarPerfil.isPending} className="flex items-center gap-2">
-            <Save size={15} /> Guardar cambios
+          <Button
+            type="submit"
+            loading={actualizarPerfil.isPending}
+            className="flex items-center gap-2"
+          >
+            <Save size={15} />
+            Guardar cambios
           </Button>
         </form>
       </div>
 
-      {/* Cambiar contraseña */}
       <div className="bg-white rounded-xl border border-border shadow-card p-6">
         <div className="flex items-center gap-2 mb-5">
           <KeyRound size={18} className="text-primary" />
-          <h3 className="font-semibold text-text">Cambiar contraseña</h3>
+          <h3 className="font-semibold">Cambiar contraseña</h3>
         </div>
 
         <form onSubmit={handlePasswordSubmit} className="space-y-4">
-          <div>
-            <label className="text-sm font-medium text-text block mb-1.5">Contraseña actual</label>
-            <input
-              type="password"
-              value={passActual}
-              onChange={e => setPassActual(e.target.value)}
-              required
-              className="w-full border border-border rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-text block mb-1.5">Nueva contraseña</label>
-            <input
-              type="password"
-              value={passNueva}
-              onChange={e => setPassNueva(e.target.value)}
-              required
-              minLength={6}
-              placeholder="Mínimo 6 caracteres"
-              className="w-full border border-border rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-text block mb-1.5">Confirmar nueva contraseña</label>
-            <input
-              type="password"
-              value={passConfirm}
-              onChange={e => setPassConfirm(e.target.value)}
-              required
-              className="w-full border border-border rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
 
-          <Button type="submit" loading={cambiarPassword.isPending}>
+          <input
+            type="password"
+            placeholder="Contraseña actual"
+            value={passActual}
+            onChange={(e) => setPassActual(e.target.value)}
+            className="w-full border border-border rounded-lg px-3 py-2"
+          />
+
+          <input
+            type="password"
+            placeholder="Nueva contraseña"
+            value={passNueva}
+            onChange={(e) => setPassNueva(e.target.value)}
+            className="w-full border border-border rounded-lg px-3 py-2"
+          />
+
+          <input
+            type="password"
+            placeholder="Confirmar contraseña"
+            value={passConfirm}
+            onChange={(e) => setPassConfirm(e.target.value)}
+            className="w-full border border-border rounded-lg px-3 py-2"
+          />
+
+          <Button
+            type="submit"
+            loading={cambiarPassword.isPending}
+          >
             Actualizar contraseña
           </Button>
         </form>
       </div>
 
-      {/* Info sucursal (si no es dueño) */}
       {user?.sucursal && (
         <div className="bg-white rounded-xl border border-border shadow-card p-6">
-          <h3 className="font-semibold text-text mb-4">Tu sucursal</h3>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-text-muted">Nombre</span>
-              <span className="font-medium text-text">{user.sucursal.nombre}</span>
-            </div>
+          <h3 className="font-semibold mb-3">Tu sucursal</h3>
+
+          <div className="text-sm flex justify-between">
+            <span className="text-text-muted">Nombre</span>
+            <span className="font-medium">{user.sucursal.nombre}</span>
           </div>
         </div>
       )}

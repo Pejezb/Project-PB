@@ -5,9 +5,11 @@ declare global {
     interface Request {
       user?: {
         userId: string;
-        rol: Rol | 'DUENO';
+        rol: Rol;
         sucursalId?: string;
       };
     }
   }
 }
+
+export {};

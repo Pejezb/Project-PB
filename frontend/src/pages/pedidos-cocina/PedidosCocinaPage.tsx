@@ -1,12 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { useAuthStore } from '../../store/authStore';
-
-import {
-  Clock3,
-  CheckCircle2,
-  ChefHat,
-  Loader2,
-} from 'lucide-react';
+import { Clock3, CheckCircle2, ChefHat, Loader2 } from 'lucide-react';
+import { api } from '../../services/api';
 
 interface PedidoCocina {
   id: string;
@@ -17,22 +11,10 @@ interface PedidoCocina {
   platos: string[];
 }
 
-const getAuthHeaders = () => {
-  const token = useAuthStore.getState().token;
-
-  return {
-    'Content-Type': 'application/json',
-    ...(token
-      ? {
-        Authorization: `Bearer ${token}`,
-      }
-      : {}),
-  };
-};
-
 export default function PedidosCocinaPage() {
   const [pedidos, setPedidos] = useState<PedidoCocina[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [, setNow] = useState(Date.now());
   const [loadingPedido, setLoadingPedido] = useState<string | null>(null);
 
@@ -44,23 +26,8 @@ export default function PedidosCocinaPage() {
 
   const obtenerPedidos = async () => {
     try {
-      const response = await fetch(
-        `http://localhost:3001/api/pedidos-cocina`,
-        {
-          headers: getAuthHeaders(),
-        }
-      );
-
-      const text = await response.text();
-
-      let data;
-
-      try {
-        data = JSON.parse(text);
-      } catch (err) {
-        console.error('NO ES JSON:', text);
-        return;
-      }
+      setError(null);
+      const { data } = await api.get('/pedidos-cocina');
 
       if (Array.isArray(data)) {
         const pedidosActuales = JSON.stringify(pedidosRef.current);
@@ -70,9 +37,9 @@ export default function PedidosCocinaPage() {
           setPedidos(data);
         }
       }
-
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
+      setError(error?.response?.data?.message || error?.message || 'No se pudieron cargar los pedidos');
     } finally {
       setLoading(false);
     }
@@ -82,19 +49,11 @@ export default function PedidosCocinaPage() {
     try {
       setLoadingPedido(id);
 
-      await fetch(
-        `http://localhost:3001/api/pedidos-cocina/${id}/listo`,
-        {
-          method: 'PATCH',
-
-          headers: getAuthHeaders(),
-        }
-      );
+      await api.patch(`/pedidos-cocina/${id}/listo`);
 
       setPedidos((prev) =>
         prev.filter((pedido) => pedido.id !== id)
       );
-
     } catch (error) {
       console.error(error);
     } finally {
@@ -111,11 +70,8 @@ export default function PedidosCocinaPage() {
     const minutos = Math.floor(diferencia / 60);
     const segundos = diferencia % 60;
 
-    return `${minutos}:${segundos
-      .toString()
-      .padStart(2, '0')}`;
+    return `${minutos}:${segundos.toString().padStart(2, '0')}`;
   };
-
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -160,6 +116,11 @@ export default function PedidosCocinaPage() {
             className="animate-spin text-primary"
             size={40}
           />
+        </div>
+      ) : error ? (
+        <div className="bg-white border border-border rounded-2xl p-10 text-center text-red-600">
+          <p className="font-semibold">Error al cargar pedidos</p>
+          <p className="text-sm text-red-500 mt-2">{error}</p>
         </div>
       ) : pedidos.length === 0 ? (
         <div className="bg-white border border-border rounded-2xl p-10 text-center">

@@ -23,12 +23,12 @@ router.get('/dashboard', authMiddleware, roleMiddleware('DUENO'), getDashboardDu
 router.get('/dashboard/sucursal/:id', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), getDashboardSucursal);
 
 // Sucursales
-router.get('/sucursales', authMiddleware, roleMiddleware('DUENO'), getSucursales);
+router.get('/sucursales', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), getSucursales);
 router.get('/sucursales/:id', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), getSucursalById);
-router.post('/sucursales', authMiddleware, roleMiddleware('DUENO'), createSucursal);
+router.post('/sucursales', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), createSucursal);
 router.patch('/sucursales/:id', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), updateSucursal);
 router.patch('/sucursales/:id/toggle', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), toggleSucursal);
-router.delete('/sucursales/:id', authMiddleware, roleMiddleware('DUENO'), deleteSucursal);
+router.delete('/sucursales/:id', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), deleteSucursal);
 
 // Usuarios
 router.patch('/usuarios/me', authMiddleware, updateMe);
@@ -68,7 +68,7 @@ router.patch('/productos/:id/toggle', toggleDisponibilidad);
 router.get('/reportes', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), getReportes);
 router.get('/reportes/exportar', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), exportarReporteExcel);
 
-// Pedidos mesero (rutas específicas ANTES que las genéricas)
+// Pedidos mesero
 router.get('/pedidos/activos', authMiddleware, roleMiddleware('MESERO', 'ADMIN'), getPedidosActivos);
 router.post('/pedidos', authMiddleware, roleMiddleware('MESERO'), crearPedido);
 router.patch('/pedidos/:id/items', authMiddleware, roleMiddleware('MESERO'), agregarItems);
@@ -83,9 +83,5 @@ router.get('/pedidos', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), getPedi
 router.get('/pedidos-cocina', authMiddleware, roleMiddleware('COCINERO'), obtenerPedidosCocina);
 router.patch('/pedidos-cocina/:id/listo', authMiddleware, roleMiddleware('COCINERO'), marcarPedidoListo);
 
-
-// router.use('/pedidos',  authMiddleware, pedidosRouter);
-// router.use('/menu',     authMiddleware, menuRouter);
-// router.use('/reportes', authMiddleware, reportesRouter);
 
 export default router;

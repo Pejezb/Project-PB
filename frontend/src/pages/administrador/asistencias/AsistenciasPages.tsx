@@ -7,16 +7,7 @@ import {
   XCircle,
   Loader2,
 } from 'lucide-react';
-import { useAuthStore } from  "../../../store/authStore";
-
-export const getAuthHeaders = () => {
-  const token = useAuthStore.getState().token;
-
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-};
+import { api } from '../../../services/api';
 
 interface Personal {
   id: string;
@@ -31,11 +22,6 @@ const ROL_LABELS = {
   MESERO: 'Mesero',
   COCINERO: 'Cocinero',
 };
-
-const API_URL = 'http://localhost:3001';
-
-
-
 
 const getInitials = (name: string) => {
   const parts = name.trim().split(' ').filter(Boolean);
@@ -62,18 +48,8 @@ export default function AsistenciasPage() {
     try {
       setLoading(true);
 
-      const response = await fetch(`${API_URL}/api/asistencias`, {
-        headers: getAuthHeaders(),
-      });
-
-      const text = await response.text();
-
-      if (!response.ok) {
-        throw new Error(text);
-      }
-
-      const data = JSON.parse(text);
-      setPersonal(data);
+      const { data } = await api.get<Personal[]>('/asistencias');
+      setPersonal(Array.isArray(data) ? data : []);
 
     } catch (error) {
       console.error('ERROR REAL:', error);
@@ -95,19 +71,10 @@ export default function AsistenciasPage() {
       )
     );
 
-    const response = await fetch(`${API_URL}/api/asistencias/${id}`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify({
-        presente: nuevoEstado,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error('No se pudo guardar la asistencia');
-    }
-
-    const data = await response.json();
+    const { data } = await api.post<{ presente: boolean; tardanza: boolean }>(
+      `/asistencias/${id}`,
+      { presente: nuevoEstado }
+    );
 
     setPersonal((prev) =>
       prev.map((e) =>

@@ -59,7 +59,7 @@ export async function crearPedido(req: Request, res: Response): Promise<void> {
   const pedido = await prisma.pedido.create({
     data: {
       tipo,
-      estado: necesitaCocina ? EstadoPedido.LISTO : EstadoPedido.PENDIENTE,
+      estado: necesitaCocina ? EstadoPedido.PENDIENTE : EstadoPedido.LISTO,
       mesaId: mesaId || null,
       meseroId,
       sucursalId,
@@ -120,9 +120,9 @@ export async function agregarItems(req: Request, res: Response): Promise<void> {
 
   const nuevoTotal = Number(pedido.total || 0) + addedTotal;
   const nuevoEstado =
-  necesitaCocina && pedido.estado === EstadoPedido.PENDIENTE
-    ? EstadoPedido.PENDIENTE
-    : EstadoPedido.LISTO;
+    pedido.estado === EstadoPedido.PENDIENTE || necesitaCocina
+      ? EstadoPedido.PENDIENTE
+      : EstadoPedido.LISTO;
 
   const actualizado = await prisma.pedido.update({
     where: { id },

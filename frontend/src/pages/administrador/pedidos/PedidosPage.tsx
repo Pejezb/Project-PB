@@ -6,7 +6,6 @@ import {
   Printer,
 } from 'lucide-react';
 
-import { useAuthStore } from '../../../store/authStore';
 
 interface ProductoPedido {
   nombre: string;
@@ -27,9 +26,6 @@ interface Pedido {
 }
 
 export default function PedidosPage() {
-  const token = useAuthStore(
-    (state) => state.token
-  );
 
   const [loading, setLoading] =
     useState(true);
@@ -51,36 +47,22 @@ export default function PedidosPage() {
   const [modalDetalle, setModalDetalle] =
     useState(false);
 
-  const fetchPedidos = async (
-    mostrarLoading = false
-  ) => {
+  const fetchPedidos = async (mostrarLoading = false) => {
     try {
-      if (mostrarLoading) {
-        setLoading(true);
-      }
+      if (mostrarLoading) setLoading(true);
 
-      const params =
-        new URLSearchParams();
+      const params = new URLSearchParams();
 
-      if (busqueda) {
-        params.append(
-          'busqueda',
-          busqueda
-        );
-      }
-
-      if (filtro !== 'TODOS') {
-        params.append(
-          'estado',
-          filtro
-        );
-      }
+      if (busqueda) params.append('busqueda', busqueda);
+      if (filtro !== 'TODOS') params.append('estado', filtro);
 
       const response = await fetch(
         `http://localhost:3001/api/pedidos?${params.toString()}`,
         {
+          method: 'GET',
+          credentials: 'include',
           headers: {
-            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
           },
         }
       );
@@ -88,16 +70,12 @@ export default function PedidosPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Error');
+        throw new Error(data?.error || 'Error al cargar pedidos');
       }
 
       setPedidos(Array.isArray(data) ? data : []);
-
     } catch (error) {
-      console.error(
-        'Error cargando pedidos:',
-        error
-      );
+      console.error('Error cargando pedidos:', error);
     } finally {
       setLoading(false);
     }
@@ -309,11 +287,8 @@ export default function PedidosPage() {
   `);
 
     ventana.document.close();
-
     ventana.focus();
-
     ventana.print();
-
     ventana.close();
   };
 

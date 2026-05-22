@@ -17,11 +17,11 @@ import { cn } from '../../utils/cn';
 import { useAuthStore } from '../../store/authStore';
 
 const navDueno = [
-  { to: '/dashboard',      icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/sucursales',     icon: Building2,       label: 'Sucursales' },
-  { to: '/usuarios',       icon: Users,           label: 'Usuarios' },
-  { to: '/reportes',       icon: BarChart3,       label: 'Reportes' },
-  { to: '/configuracion',  icon: Settings,        label: 'Configuración' },
+  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/sucursales', icon: Building2, label: 'Sucursales' },
+  { to: '/usuarios', icon: Users, label: 'Usuarios' },
+  { to: '/reportes', icon: BarChart3, label: 'Reportes' },
+  { to: '/configuracion', icon: Settings, label: 'Configuración' },
 ];
 
 const navAdmin = [
@@ -37,9 +37,9 @@ const navAdmin = [
 ];
 
 const navMesero = [
-  { to: '/mesero/mesas',   icon: Grid2X2,       label: 'Mesas' },
+  { to: '/mesero/mesas', icon: Grid2X2, label: 'Mesas' },
   { to: '/mesero/pedidos', icon: ClipboardList, label: 'Pedidos' },
-  { to: '/configuracion',  icon: Settings,      label: 'Configuración' },
+  { to: '/configuracion', icon: Settings, label: 'Configuración' },
 ];
 
 const navCocinero = [
@@ -62,9 +62,12 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         user?.rol === 'MESERO' ? navMesero :
           user?.rol === 'COCINERO' ? navCocinero : [];
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } finally {
+      navigate('/login');
+    }
   };
 
   return (

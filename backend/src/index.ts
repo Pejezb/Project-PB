@@ -22,25 +22,33 @@ const loginLimiter = rateLimit({
   message: { error: 'Demasiados intentos de login, intenta más tarde' },
 });
 
-app.use(helmet());
-
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || origin.startsWith('http://localhost') || origin === process.env.FRONTEND_URL) {
-      callback(null, true);
-    } else {
-      callback(new Error('CORS no permitido'));
+    const allowed = [
+      process.env.FRONTEND_URL,
+      'http://localhost:5173'
+    ].filter(Boolean);
+
+    if (!origin) return callback(null, true);
+
+    if (allowed.includes(origin)) {
+      return callback(null, true);
     }
+
+    return callback(new Error('Origen no permitido por CORS'));
   },
   credentials: true,
 }));
 
-app.use(limiter);
-app.use('/api/auth/login', loginLimiter);
-
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+}));
 
 app.use(express.json());
 app.use(cookieParser());
+
+app.use('/api/auth/login', loginLimiter);
+app.use(limiter);
 
 app.use((req, res, next) => {
   res.on('finish', () => {

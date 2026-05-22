@@ -7,7 +7,10 @@ import { useAuthStore } from '../../store/authStore';
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { setAuth } = useAuthStore();
+  const { setUser, broadcastLogin } = useAuthStore((state) => ({
+    setUser: state.setUser,
+    broadcastLogin: state.broadcastLogin,
+  }));
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
@@ -38,8 +41,9 @@ export default function LoginPage() {
     if (!email || !password) { setError('Completa todos los campos'); return; }
     setLoading(true);
     try {
-      const { user, token } = await authService.login(email, password);
-      setAuth(user, token);
+      const user = await authService.login(email, password);
+      setUser(user);
+      broadcastLogin();
       navigate('/dashboard', { replace: true });
     } catch (err: any) {
       const data = err?.response?.data;

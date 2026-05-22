@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Plus, Pencil, Users, X, Loader2 } from 'lucide-react';
-import { useAuthStore } from '../../../store/authStore';
 
 interface Mesa {
   id: string;
@@ -10,14 +9,7 @@ interface Mesa {
   sucursalId: string;
 }
 
-const getAuthHeaders = () => {
-  const token = useAuthStore.getState().token;
-
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-};
+const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export default function MesasPage() {
   const [mesas, setMesas] = useState<Mesa[]>([]);
@@ -40,28 +32,18 @@ export default function MesasPage() {
     try {
       setLoading(true);
 
-      const res = await fetch('http://localhost:3001/api/mesas', {
-        headers: getAuthHeaders(),
+      const res = await fetch(`${API}/api/mesas`, {
+        credentials: 'include',
       });
 
-      const text = await res.text();
+      const data = await res.json();
 
-      if (!res.ok) {
-        console.error(text);
-        setMesas([]);
-        return;
-      }
+      if (!res.ok) throw new Error(data?.error || 'Error cargando mesas');
 
-      const data = JSON.parse(text);
-
-      if (!Array.isArray(data)) {
-        setMesas([]);
-        return;
-      }
-
-      setMesas(data);
+      setMesas(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error('ERROR REAL:', error);
+      console.error('ERROR:', error);
+      setMesas([]);
     } finally {
       setLoading(false);
     }
@@ -76,17 +58,24 @@ export default function MesasPage() {
 
     if (!numero || !capacidad) return;
 
-    const res = await fetch('http://localhost:3001/api/mesas', {
+    const res = await fetch(`${API}/api/mesas`, {
       method: 'POST',
-      headers: getAuthHeaders(),
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({ numero, capacidad }),
     });
 
-    if (!res.ok) return;
-
     const data = await res.json();
 
+    if (!res.ok) {
+      console.error(data?.error || 'Error creando mesa');
+      return;
+    }
+
     setMesas(prev => [...prev, data]);
+
     setNuevaMesa({ numero: '', capacidad: '' });
     setModalNuevaMesa(false);
   };
@@ -94,22 +83,25 @@ export default function MesasPage() {
   const actualizarMesa = async () => {
     if (!mesaEditando) return;
 
-    const res = await fetch(
-      `http://localhost:3001/api/mesas/${mesaEditando.id}`,
-      {
-        method: 'PATCH',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          numero: mesaEditando.numero,
-          capacidad: mesaEditando.capacidad,
-          estado: mesaEditando.estado,
-        }),
-      }
-    );
-
-    if (!res.ok) return;
+    const res = await fetch(`${API}/api/mesas/${mesaEditando.id}`, {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        numero: mesaEditando.numero,
+        capacidad: mesaEditando.capacidad,
+        estado: mesaEditando.estado,
+      }),
+    });
 
     const data = await res.json();
+
+    if (!res.ok) {
+      console.error(data?.error || 'Error actualizando mesa');
+      return;
+    }
 
     setMesas(prev =>
       prev.map(m => (m.id === data.id ? data : m))
@@ -122,13 +114,7 @@ export default function MesasPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[70vh]">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="animate-spin text-primary" size={32} />
-
-          <p className="text-sm text-text-muted">
-            Cargando mesas...
-          </p>
-        </div>
+        <Loader2 className="animate-spin text-primary" size={32} />
       </div>
     );
   }
@@ -169,7 +155,6 @@ export default function MesasPage() {
         </button>
       </div>
 
-      {/* GRID */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
 
         {mesas.map(mesa => (
@@ -178,7 +163,6 @@ export default function MesasPage() {
             className="bg-white border border-border rounded-2xl p-5 shadow-sm hover:shadow-md transition"
           >
 
-            {/* HEADER CARD */}
             <div className="flex items-start justify-between mb-5">
 
               <div>
@@ -188,23 +172,21 @@ export default function MesasPage() {
 
                 <div className="flex items-center gap-2 mt-2">
                   <div
-                    className={`w-3 h-3 rounded-full ${
-                      mesa.estado === 'LIBRE'
-                        ? 'bg-sky-400'
-                        : mesa.estado === 'OCUPADA'
+                    className={`w-3 h-3 rounded-full ${mesa.estado === 'LIBRE'
+                      ? 'bg-sky-400'
+                      : mesa.estado === 'OCUPADA'
                         ? 'bg-red-400'
                         : 'bg-yellow-400'
-                    }`}
+                      }`}
                   />
 
                   <span
-                    className={`text-sm font-medium ${
-                      mesa.estado === 'LIBRE'
-                        ? 'text-sky-500'
-                        : mesa.estado === 'OCUPADA'
+                    className={`text-sm font-medium ${mesa.estado === 'LIBRE'
+                      ? 'text-sky-500'
+                      : mesa.estado === 'OCUPADA'
                         ? 'text-red-500'
                         : 'text-yellow-500'
-                    }`}
+                      }`}
                   >
                     {mesa.estado}
                   </span>
@@ -222,7 +204,6 @@ export default function MesasPage() {
               </button>
             </div>
 
-            {/* CAPACIDAD */}
             <div className="flex items-center gap-3 bg-background rounded-xl px-4 py-3">
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                 <Users size={20} className="text-primary" />
@@ -240,7 +221,6 @@ export default function MesasPage() {
         ))}
       </div>
 
-      {/* MODAL CREAR */}
       {modalNuevaMesa && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white w-full max-w-md rounded-2xl p-6">
@@ -282,7 +262,6 @@ export default function MesasPage() {
         </div>
       )}
 
-      {/* MODAL EDITAR */}
       {modalEditarMesa && mesaEditando && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white w-full max-w-md rounded-2xl p-6">

@@ -1,40 +1,65 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import type { AuthUser } from '../types';
 import { api } from '../services/api';
 
 interface AuthState {
   user: AuthUser | null;
-  token: string | null;
-  setAuth: (user: AuthUser, token: string) => void;
+
+  setUser: (user: AuthUser | null) => void;
+
+  initAuth: () => Promise<void>;
+
   logout: () => Promise<void>;
+
+  broadcastLogin: () => void;
+
+  listenToAuthEvents: () => void;
 }
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set) => ({
-      user: null,
-      token: null,
-      setAuth: (user, token) => set({ user, token }),
-      logout: async () => {
-        try {
-          await api.post('/auth/logout');
-        } catch {
-        } finally {
-          set({ user: null, token: null });
-        }
-      },
-    }),
-    {
-      name: 'restaurantos-auth',
-      storage: {
-        getItem: (key) => {
-          const value = sessionStorage.getItem(key);
-          return value ? JSON.parse(value) : null;
-        },
-        setItem: (key, value) => sessionStorage.setItem(key, JSON.stringify(value)),
-        removeItem: (key) => sessionStorage.removeItem(key),
-      },
+export const useAuthStore = create<AuthState>((set) => ({
+  user: null,
+
+  setUser: (user) => set({ user }),
+
+  initAuth: async () => {
+    try {
+      const { data } = await api.get('/auth/me');
+      set({ user: data });
+    } catch {
+      set({ user: null });
     }
-  )
-);
+  },
+
+  logout: async () => {
+    try {
+      await api.post('/auth/logout');
+    } finally {
+      set({ user: null });
+      localStorage.setItem('AUTH_LOGOUT_EVENT', Date.now().toString());
+    }
+  },
+
+  broadcastLogin: () => {
+    localStorage.setItem('AUTH_LOGIN_EVENT', Date.now().toString());
+  },
+
+  listenToAuthEvents: () => {
+    const handleStorageChange = async (e: StorageEvent) => {
+      if (e.key === 'AUTH_LOGOUT_EVENT') {
+        set({ user: null });
+      }
+      if (e.key === 'AUTH_LOGIN_EVENT') {
+        try {
+          const { data } = await api.get('/auth/me');
+          set({ user: data });
+        } catch {
+          set({ user: null });
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => window.removeEventListener('storage', handleStorageChange);
+  },
+}));

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   CalendarDays,
   Download,
@@ -6,7 +6,7 @@ import {
   ClipboardList,
 } from 'lucide-react';
 
-import { useAuthStore } from '../../../store/authStore';
+import { useQuery } from '@tanstack/react-query';
 
 interface VentaDia {
   dia: string;
@@ -38,170 +38,133 @@ interface ReportesResponse {
 }
 
 export default function ReportesPage() {
-  const token = useAuthStore((state) => state.token);
-
   const hoy = new Date().toISOString().split('T')[0];
 
   const hace7Dias = new Date();
   hace7Dias.setDate(hace7Dias.getDate() - 6);
 
-  const formatDate = (date: Date) => {
-    return date.toISOString().split('T')[0];
-  };
-
-  const [loading, setLoading] = useState(true);
+  const formatDate = (date: Date) => date.toISOString().split('T')[0];
 
   const [filtroRapido, setFiltroRapido] = useState<
     'HOY' | 'SEMANA' | 'MES' | 'PERSONALIZADO'
   >('SEMANA');
 
-  const [desde, setDesde] = useState(
-    formatDate(hace7Dias)
-  );
-
+  const [desde, setDesde] = useState(formatDate(hace7Dias));
   const [hasta, setHasta] = useState(hoy);
-
   const [meseroId, setMeseroId] = useState('');
 
-  const [ventasData, setVentasData] = useState<VentaDia[]>([]);
-  const [pedidosData, setPedidosData] = useState<PedidoDia[]>([]);
-  const [meserosData, setMeserosData] = useState<Mesero[]>([]);
-  const [meseros, setMeseros] = useState<MeseroSelect[]>([]);
+  const fetchReportes = async (): Promise<ReportesResponse> => {
+    const params = new URLSearchParams();
 
-  const [totalVentas, setTotalVentas] = useState(0);
-  const [cantidadPedidos, setCantidadPedidos] = useState(0);
+    if (desde) params.append('desde', desde);
+    if (hasta) params.append('hasta', hasta);
+    if (meseroId) params.append('meseroId', meseroId);
 
-  const maxVenta = useMemo(() => {
-    return Math.max(...ventasData.map((v) => v.monto), 1);
-  }, [ventasData]);
+    const API_URL = import.meta.env.VITE_API_URL;
 
-  const maxPedidos = useMemo(() => {
-    return Math.max(...pedidosData.map((p) => p.pedidos), 1);
-  }, [pedidosData]);
+    console.log('API_URL:', API_URL);
+    console.log('FULL URL:', `${API_URL}/api/reportes`);
 
-  const maxMeseros = useMemo(() => {
-    return Math.max(...meserosData.map((m) => m.pedidos), 1);
-  }, [meserosData]);
+    const res = await fetch(
+      `${API_URL}/api/reportes?${params.toString()}`,
+      {
+        credentials: 'include',
+      }
+    );
+    if (!res.ok) throw new Error('Error cargando reportes');
 
-  const fetchReportes = async () => {
-    try {
-      setLoading(true);
-
-      const params = new URLSearchParams();
-
-      if (desde) params.append('desde', desde);
-      if (hasta) params.append('hasta', hasta);
-      if (meseroId) params.append('meseroId', meseroId);
-
-      const response = await fetch(
-        `http://localhost:3001/api/reportes?${params.toString()}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const data: ReportesResponse = await response.json();
-
-      setVentasData(data.ventasPorDia);
-      setPedidosData(data.pedidosPorDia);
-      setMeserosData(data.rendimientoMeseros);
-      setMeseros(data.meseros);
-
-      setTotalVentas(data.totalVentas);
-      setCantidadPedidos(data.cantidadPedidos);
-
-    } catch (error) {
-      console.error('Error cargando reportes:', error);
-    } finally {
-      setLoading(false);
-    }
+    return res.json();
   };
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['reportes', desde, hasta, meseroId],
+    queryFn: fetchReportes,
+  });
+
+  console.log('ERROR:', error);
+
+
+  const ventasData = data?.ventasPorDia ?? [];
+  const pedidosData = data?.pedidosPorDia ?? [];
+  const meserosData = data?.rendimientoMeseros ?? [];
+  const meseros = data?.meseros ?? [];
+
+  const totalVentas = data?.totalVentas ?? 0;
+  const cantidadPedidos = data?.cantidadPedidos ?? 0;
+
+  const maxVenta = useMemo(
+    () => Math.max(...ventasData.map((v) => v.monto), 1),
+    [ventasData]
+  );
+
+  const maxPedidos = useMemo(
+    () => Math.max(...pedidosData.map((p) => p.pedidos), 1),
+    [pedidosData]
+  );
+
+  const maxMeseros = useMemo(
+    () => Math.max(...meserosData.map((m) => m.pedidos), 1),
+    [meserosData]
+  );
 
   const exportarExcel = async () => {
-    try {
-      const params = new URLSearchParams();
+    const params = new URLSearchParams();
 
-      if (desde) params.append('desde', desde);
-      if (hasta) params.append('hasta', hasta);
-      if (meseroId) params.append('meseroId', meseroId);
-
-      const response = await fetch(
-        `http://localhost:3001/api/reportes/exportar?${params.toString()}`,
-        {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Error exportando excel');
+    if (desde) params.append('desde', desde);
+    if (hasta) params.append('hasta', hasta);
+    if (meseroId) params.append('meseroId', meseroId);
+    const API_URL = import.meta.env.VITE_API_URL;
+    const res = await fetch(
+      `${API_URL}/api/reportes/exportar?${params.toString()}`,
+      {
+        method: 'GET',
+        credentials: 'include',
       }
+    );
 
-      const blob = await response.blob();
+    if (!res.ok) throw new Error('Error exportando excel');
 
-      const url = window.URL.createObjectURL(blob);
+    const blob = await res.blob();
 
-      const a = document.createElement('a');
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
 
-      a.href = url;
+    a.href = url;
+    a.download = `reporte-${desde}-${hasta}.xlsx`;
 
-      a.download = `reporte-${desde || 'inicio'}-${hasta || 'fin'
-        }.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
 
-      document.body.appendChild(a);
-
-      a.click();
-
-      a.remove();
-
-      window.URL.revokeObjectURL(url);
-
-    } catch (error) {
-      console.error(error);
-    }
+    window.URL.revokeObjectURL(url);
   };
 
-  const aplicarFiltroRapido = (
-    tipo: 'HOY' | 'SEMANA' | 'MES'
-  ) => {
+  const aplicarFiltroRapido = (tipo: 'HOY' | 'SEMANA' | 'MES') => {
     const hoyDate = new Date();
 
     if (tipo === 'HOY') {
-      const fecha = formatDate(hoyDate);
-
-      setDesde(fecha);
-      setHasta(fecha);
+      const f = formatDate(hoyDate);
+      setDesde(f);
+      setHasta(f);
     }
 
     if (tipo === 'SEMANA') {
-      const semana = new Date();
-
-      semana.setDate(semana.getDate() - 6);
-
-      setDesde(formatDate(semana));
+      const d = new Date();
+      d.setDate(d.getDate() - 6);
+      setDesde(formatDate(d));
       setHasta(formatDate(hoyDate));
     }
 
     if (tipo === 'MES') {
-      const mes = new Date();
-
-      mes.setDate(mes.getDate() - 29);
-
-      setDesde(formatDate(mes));
+      const d = new Date();
+      d.setDate(d.getDate() - 29);
+      setDesde(formatDate(d));
       setHasta(formatDate(hoyDate));
     }
 
     setFiltroRapido(tipo);
   };
-
-  useEffect(() => {
-    fetchReportes();
-  }, [desde, hasta, meseroId]);
-
+  
   return (
     <div className="p-6 bg-background min-h-screen">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 mb-8">
@@ -329,7 +292,7 @@ export default function ReportesPage() {
               </p>
 
               <h2 className="text-4xl font-bold text-text">
-                {loading
+                {isLoading
                   ? '...'
                   : `S/ ${totalVentas.toLocaleString('es-PE')}`}
               </h2>
@@ -352,7 +315,7 @@ export default function ReportesPage() {
               </p>
 
               <h2 className="text-4xl font-bold text-text">
-                {loading ? '...' : cantidadPedidos}
+                {isLoading ? '...' : cantidadPedidos}
               </h2>
             </div>
 

@@ -7,6 +7,7 @@ import {
   X,
   ImagePlus,
 } from 'lucide-react';
+import { api } from '../../../services/api';
 
 interface Categoria {
   id: string;
@@ -29,8 +30,6 @@ interface Producto {
 }
 
 export default function MenuPage() {
-  const API = 'http://localhost:3001/api';
-
   const [busqueda, setBusqueda] = useState('');
   const [categoriaActiva, setCategoriaActiva] = useState('Todos');
 
@@ -57,20 +56,8 @@ export default function MenuPage() {
 
   const cargarCategorias = async () => {
     try {
-      const res = await fetch(`${API}/categorias`);
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(
-          data.error || 'Error cargando categorías'
-        );
-      }
-
-      setCategorias(
-        Array.isArray(data) ? data : []
-      );
-
+      const { data } = await api.get<Categoria[]>('/categorias');
+      setCategorias(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error(error);
       setCategorias([]);
@@ -79,20 +66,8 @@ export default function MenuPage() {
 
   const cargarProductos = async () => {
     try {
-      const res = await fetch(`${API}/productos`);
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(
-          data.error || 'Error cargando productos'
-        );
-      }
-
-      setProductos(
-        Array.isArray(data) ? data : []
-      );
-
+      const { data } = await api.get<Producto[]>('/productos');
+      setProductos(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error(error);
       setProductos([]);
@@ -107,13 +82,9 @@ export default function MenuPage() {
   const crearCategoria = async () => {
     if (!nuevaCategoria.trim()) return;
 
-    await fetch(`${API}/categorias`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        nombre: nuevaCategoria,
-        sucursalId: 'sucursal-1',
-      }),
+    await api.post('/categorias', {
+      nombre: nuevaCategoria,
+      sucursalId: 'sucursal-1',
     });
 
     setNuevaCategoria('');
@@ -125,18 +96,14 @@ export default function MenuPage() {
     if (!nuevoProducto.nombre || !nuevoProducto.precio || !nuevoProducto.categoriaId)
       return;
 
-    await fetch(`${API}/productos`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        nombre: nuevoProducto.nombre,
-        descripcion: nuevoProducto.descripcion,
-        precio: Number(nuevoProducto.precio),
-        imagen: nuevoProducto.imagen,
-        categoriaId: nuevoProducto.categoriaId,
-        sucursalId: 'sucursal-1',
-        tipo: nuevoProducto.tipo,
-      }),
+    await api.post('/productos', {
+      nombre: nuevoProducto.nombre,
+      descripcion: nuevoProducto.descripcion,
+      precio: Number(nuevoProducto.precio),
+      imagen: nuevoProducto.imagen,
+      categoriaId: nuevoProducto.categoriaId,
+      sucursalId: 'sucursal-1',
+      tipo: nuevoProducto.tipo,
     });
 
     setNuevoProducto({
@@ -155,17 +122,13 @@ export default function MenuPage() {
   const actualizarProducto = async () => {
     if (!productoEditando) return;
 
-    await fetch(`${API}/productos/${productoEditando.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        nombre: productoEditando.nombre,
-        descripcion: productoEditando.descripcion,
-        precio: productoEditando.precio,
-        imagen: productoEditando.imagen,
-        categoriaId: productoEditando.categoria.id,
-        tipo: productoEditando.tipo,
-      }),
+    await api.put(`/productos/${productoEditando.id}`, {
+      nombre: productoEditando.nombre,
+      descripcion: productoEditando.descripcion,
+      precio: productoEditando.precio,
+      imagen: productoEditando.imagen,
+      categoriaId: productoEditando.categoria.id,
+      tipo: productoEditando.tipo,
     });
 
     setModalEditar(false);
@@ -174,7 +137,7 @@ export default function MenuPage() {
   };
 
   const eliminarProducto = async (id: string) => {
-    await fetch(`${API}/productos/${id}`, { method: 'DELETE' });
+    await api.delete(`/productos/${id}`);
     cargarProductos();
   };
 
@@ -673,7 +636,6 @@ export default function MenuPage() {
                 />
               </div>
 
-              {/* FIX: value apunta a categoria.id, onChange actualiza el objeto categoria completo */}
               <div>
                 <label className="text-sm font-medium mb-2 block">
                   Categoría

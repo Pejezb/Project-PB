@@ -122,7 +122,6 @@ export default function PedidoPage() {
       ? 'Nuevo pedido · Para llevar'
       : `Nuevo pedido${state.mesaNumero ? ` · Mesa ${state.mesaNumero}` : ''}`;
 
-  // Panel de orden (compartido entre mobile y desktop)
   const OrdenPanel = () => (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between mb-3">
@@ -174,7 +173,6 @@ export default function PedidoPage() {
         </div>
       )}
 
-      {/* Total y confirmar */}
       <div className="border-t border-border pt-3 mt-3 space-y-3">
         <div className="flex items-center justify-between font-semibold text-text">
           <span>Total</span>
@@ -208,10 +206,8 @@ export default function PedidoPage() {
         )}
       </div>
 
-      {/* Contenido principal */}
       {isMobile ? (
         <div className="flex flex-col flex-1 min-h-0">
-          {/* Categorías */}
           <div className="flex gap-2 overflow-x-auto pb-2 mb-3 scrollbar-hide">
             <button
               onClick={() => setCategoriaSeleccionada('todos')}
@@ -232,7 +228,6 @@ export default function PedidoPage() {
             ))}
           </div>
 
-          {/* Grid productos */}
           <div className="flex-1 overflow-y-auto">
             {isLoading ? (
               <div className="grid grid-cols-2 gap-2">
@@ -247,7 +242,6 @@ export default function PedidoPage() {
             )}
           </div>
 
-          {/* Barra inferior flotante */}
           <div className="fixed bottom-0 left-0 right-0 z-40 p-3 bg-white border-t border-border shadow-lg">
             {totalItems > 0 ? (
               <div className="flex items-center gap-3">
@@ -270,7 +264,6 @@ export default function PedidoPage() {
             )}
           </div>
 
-          {/* Panel de orden (bottom sheet móvil) */}
           {mostrarOrden && (
             <div className="fixed inset-0 z-50 flex flex-col justify-end">
               <div className="absolute inset-0 bg-black/40" onClick={() => setMostrarOrden(false)} />

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { Menu, Bell } from 'lucide-react';
 import { Sidebar } from './Sidebar';
 import { useAuthStore } from '../../store/authStore';
@@ -14,19 +14,13 @@ const pageTitles: Record<string, string> = {
 export function AuthLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const location = useLocation();
-  const navigate = useNavigate();
-  const { user, token } = useAuthStore();
+  const { user } = useAuthStore();
 
   const title = pageTitles[location.pathname] ?? 'RestaurantOS';
 
   useEffect(() => {
     if (window.innerWidth < 1024) setSidebarOpen(false);
   }, [location.pathname]);
-
-  useEffect(() => {
-    if (!token || !user) navigate('/login', { replace: true });
-  }, [token, user]);
-
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
