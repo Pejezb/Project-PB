@@ -30,6 +30,7 @@ router.patch('/sucursales/:id', authMiddleware, roleMiddleware('DUENO', 'ADMIN')
 router.patch('/sucursales/:id/toggle', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), toggleSucursal);
 router.delete('/sucursales/:id', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), deleteSucursal);
 
+
 // Usuarios
 router.patch('/usuarios/me', authMiddleware, updateMe);
 router.patch('/usuarios/me/password', authMiddleware, changeMyPassword);
