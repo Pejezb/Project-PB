@@ -59,14 +59,12 @@ router.get('/categorias', authMiddleware, roleMiddleware('ADMIN', 'DUENO', 'MESE
 router.post('/productos', authMiddleware, roleMiddleware('ADMIN', 'DUENO'), crearProducto);
 router.get('/productos', authMiddleware, roleMiddleware('ADMIN', 'DUENO', 'MESERO'), listarProductos);
 
-router.get('/productos/:id', obtenerProducto);
-router.put('/productos/:id', actualizarProducto);
-router.delete('/productos/:id', eliminarProducto);
-router.patch('/productos/:id/toggle', toggleDisponibilidad);
+router.get('/productos/:id', authMiddleware, roleMiddleware('ADMIN', 'MESERO'), obtenerProducto);
+router.put('/productos/:id', authMiddleware, roleMiddleware('ADMIN'), actualizarProducto);
+router.delete('/productos/:id', authMiddleware, roleMiddleware('ADMIN'), eliminarProducto);
+router.patch('/productos/:id/toggle', authMiddleware, roleMiddleware('ADMIN'), toggleDisponibilidad);
 
-// Reportes
-router.get('/reportes', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), getReportes);
-router.get('/reportes/exportar', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), exportarReporteExcel);
+
 
 // Pedidos mesero (rutas específicas ANTES que las genéricas)
 router.get('/pedidos/activos', authMiddleware, roleMiddleware('MESERO', 'ADMIN'), getPedidosActivos);
@@ -77,7 +75,7 @@ router.patch('/pedidos/:id/cobrar', authMiddleware, roleMiddleware('MESERO', 'AD
 router.patch('/pedidos/:id/cancelar', authMiddleware, roleMiddleware('MESERO', 'ADMIN'), cancelarPedido);
 
 // Pedidos admin
-router.get('/pedidos', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), getPedidosAdmin);
+router.get('/pedidos', authMiddleware, roleMiddleware('ADMIN'), getPedidosAdmin);
 
 // Cocina
 router.get('/pedidos-cocina', authMiddleware, roleMiddleware('COCINERO'), obtenerPedidosCocina);

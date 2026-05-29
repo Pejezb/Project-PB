@@ -109,6 +109,22 @@ function HomeRedirect() {
   return <Navigate to="/dashboard" replace />;
 }
 
+function RequireMesero({ children }: { children: React.ReactNode }) {
+  const { user } = useAuthStore();
+  if (user?.rol !== 'MESERO') {
+    return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
+}
+
+function RequireSoloAdmin({ children }: { children: React.ReactNode }) {
+  const { user } = useAuthStore();
+  if (user?.rol !== 'ADMIN') {
+    return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={qc}>
@@ -169,17 +185,28 @@ export default function App() {
 
             <Route
               path="/mesero/mesas"
-              element={<MesasPageMesero />}
+              element={
+                <RequireMesero>
+                  <MesasPageMesero />
+                </RequireMesero>
+              }
             />
-
             <Route
               path="/mesero/pedido"
-              element={<PedidoPage />}
+              element={
+                <RequireMesero>
+                  <PedidoPage />
+                </RequireMesero>
+              }
             />
 
             <Route
               path="/mesero/pedidos"
-              element={<PedidosActivosPage />}
+              element={
+                <RequireMesero>
+                  <PedidosActivosPage />
+                </RequireMesero>
+              }
             />
         
             <Route
@@ -198,27 +225,47 @@ export default function App() {
 
             <Route
               path="/asistencias"
-              element={<AsistenciasPage />}
+              element={
+                <RequireSoloAdmin>
+                  <AsistenciasPage />
+                </RequireSoloAdmin>
+              }
             />
 
             <Route
               path="/menu"
-              element={<MenuPage />}
+              element={
+                <RequireSoloAdmin>
+                  <MenuPage />
+                </RequireSoloAdmin>
+              }
             />
 
             <Route
               path="/reportes"
-              element={<ReportesPage />}
+              element={
+                <RequireAdmin>
+                  <ReportesPage />
+                </RequireAdmin>
+              }
             />
 
             <Route
               path="/mesas"
-              element={<MesasPage />}
+              element={
+                <RequireSoloAdmin>
+                  <MesasPage />
+                </RequireSoloAdmin>
+              }
             />
 
             <Route
               path="/pedidos"
-              element={<PedidosPage />}
+              element={
+                <RequireSoloAdmin>
+                  <PedidosPage />
+                </RequireSoloAdmin>
+              }
             />
           </Route>
 
