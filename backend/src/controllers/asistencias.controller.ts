@@ -10,7 +10,7 @@ type UserToken = {
     sucursalId: string | null;
 };
 
-const HORA_ENTRADA = "10:00";
+const TOLERANCIA_MINUTOS = 10;
 
 const getUser = (req: Request): UserToken | undefined => {
     return req.user as UserToken | undefined;
@@ -23,13 +23,29 @@ const getFechaSolo = () => {
 };
 
 
-const esTardanza = (hora: Date) => {
-    const [h, m] = HORA_ENTRADA.split(':').map(Number);
+const esTardanza = (
+    horaActual: Date,
+    horarioApertura?: string | null
+) => {
 
-    const limite = new Date(hora);
-    limite.setHours(h, m, 0, 0);
+    if (!horarioApertura) {
+        return false;
+    }
 
-    return hora > limite;
+    const [h, m] = horarioApertura
+        .split(':')
+        .map(Number);
+
+    const limite = new Date(horaActual);
+
+    limite.setHours(
+        h,
+        m + TOLERANCIA_MINUTOS,
+        0,
+        0
+    );
+
+    return horaActual > limite;
 };
 
 
@@ -43,10 +59,9 @@ export const getAsistencias = async (req: Request, res: Response) => {
 
         const fecha = getFechaSolo();
 
-        const whereSucursal =
-            user.rol === 'ADMIN'
-                ? {}
-                : { sucursalId: user.sucursalId! };
+        const whereSucursal = {
+            sucursalId: user.sucursalId!,
+        };
 
         const usuarios = await prisma.usuario.findMany({
             where: {
@@ -66,15 +81,15 @@ export const getAsistencias = async (req: Request, res: Response) => {
         });
 
         const result = usuarios.map((u) => {
-            const a = u.asistencias ?.[0];
+            const a = u.asistencias?.[0];
 
             return {
                 id: u.id,
                 nombre: u.nombre,
                 rol: u.rol,
-                asistencia: a ?.presente ?? false,
-                horaEntrada: a ?.horaEntrada ?? null,
-                tardanza: a ?.tardanza ?? false,
+                asistencia: a?.presente ?? false,
+                horaEntrada: a?.horaEntrada ?? null,
+                tardanza: a?.tardanza ?? false,
             };
         });
 
@@ -129,15 +144,23 @@ export const toggleAsistencia = async (req: Request, res: Response) => {
             },
         });
 
-        const horaEntrada =
-            presente && !existente ?.horaEntrada
-                ? ahora
-                : existente ?.horaEntrada ?? null;
+        const horaEntrada = presente
+            ? ahora
+            : null;
+
+        const sucursal = await prisma.sucursal.findUnique({
+            where: {
+                id: empleado.sucursalId!,
+            },
+        });
 
         const tardanza =
-            presente && !existente ?.horaEntrada
-                ? esTardanza(ahora)
-                : existente ?.tardanza ?? false;
+            presente && !existente?.horaEntrada
+                ? esTardanza(
+                    ahora,
+                    sucursal?.horarioApertura
+                )
+                : existente?.tardanza ?? false;
 
         let asistencia;
 
@@ -146,8 +169,8 @@ export const toggleAsistencia = async (req: Request, res: Response) => {
                 where: { id: existente.id },
                 data: {
                     presente,
-                    horaEntrada,
-                    tardanza,
+                    horaEntrada: presente ? horaEntrada : null,
+                    tardanza: presente ? tardanza : false,
                 },
             });
         } else {
@@ -158,7 +181,12 @@ export const toggleAsistencia = async (req: Request, res: Response) => {
                     fecha,
                     presente,
                     horaEntrada: presente ? ahora : null,
-                    tardanza: presente ? esTardanza(ahora) : false,
+                    tardanza: presente
+                        ? esTardanza(
+                            ahora,
+                            sucursal?.horarioApertura
+                        )
+                        : false,
                 },
             });
         }

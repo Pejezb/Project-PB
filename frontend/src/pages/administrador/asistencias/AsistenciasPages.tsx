@@ -59,40 +59,45 @@ export default function AsistenciasPage() {
   };
 
   const toggleAsistencia = async (id: string) => {
-  try {
-    const empleado = personal.find((p) => p.id === id);
-    if (!empleado) return;
+    try {
+      const empleado = personal.find((p) => p.id === id);
+      if (!empleado) return;
 
-    const nuevoEstado = !empleado.asistencia;
+      const nuevoEstado = !empleado.asistencia;
 
-    setPersonal((prev) =>
-      prev.map((e) =>
-        e.id === id ? { ...e, asistencia: nuevoEstado } : e
-      )
-    );
+      setPersonal((prev) =>
+        prev.map((e) =>
+          e.id === id ? { ...e, asistencia: nuevoEstado } : e
+        )
+      );
 
-    const { data } = await api.post<{ presente: boolean; tardanza: boolean }>(
-      `/asistencias/${id}`,
-      { presente: nuevoEstado }
-    );
+      const { data } = await api.post<{
+        presente: boolean;
+        tardanza: boolean;
+        horaEntrada: string | null;
+      }>(
+        `/asistencias/${id}`,
+        { presente: nuevoEstado }
+      );
 
-    setPersonal((prev) =>
-      prev.map((e) =>
-        e.id === id
-          ? {
+      setPersonal((prev) =>
+        prev.map((e) =>
+          e.id === id
+            ? {
               ...e,
               asistencia: data.presente,
               tardanza: data.tardanza,
+              horaEntrada: data.horaEntrada,
             }
-          : e
-      )
-    );
+            : e
+        )
+      );
 
-  } catch (error) {
-    console.error(error);
-    cargarAsistencias();
-  }
-};
+    } catch (error) {
+      console.error(error);
+      cargarAsistencias();
+    }
+  };
   const personalFiltrado = useMemo(() => {
     const search = searchTerm.toLowerCase().trim();
 
@@ -428,32 +433,31 @@ export default function AsistenciasPage() {
                   <td className="px-5 py-4 text-center text-sm text-text-muted">
                     {empleado.horaEntrada
                       ? new Date(empleado.horaEntrada).toLocaleTimeString('es-PE', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })
                       : '—'}
                   </td>
 
                   <td className="px-5 py-4 text-center">
                     <div className="flex flex-col items-center gap-1">
 
-                    <span
-                      className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
-                        empleado.asistencia
-                          ? 'bg-green-100 text-green-700'
+                      <span
+                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${empleado.asistencia
+                          ? empleado.tardanza
+                            ? 'bg-orange-100 text-orange-700'
+                            : 'bg-green-100 text-green-700'
                           : 'bg-red-100 text-red-600'
-                      }`}
-                          >
-                        {empleado.asistencia ? 'Presente' : 'Ausente'}
+                          }`}
+                      >
+                        {empleado.asistencia
+                          ? empleado.tardanza
+                            ? 'Tarde'
+                            : 'Puntual'
+                          : 'Ausente'}
                       </span>
-
-                      {empleado.asistencia && empleado.tardanza && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-orange-100 text-orange-600">
-                          Tardanza
-                        </span>
-                        )}
-                      </div>
-                    </td>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
