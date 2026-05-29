@@ -10,6 +10,8 @@ import rateLimit from 'express-rate-limit';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+app.set('trust proxy', 1);
+
 const limiter = rateLimit({
   windowMs: 1 * 60 * 1000,
   max: 1000,

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 
 import { useQuery } from '@tanstack/react-query';
+import { api } from '../../../services/api';
 
 interface VentaDia {
   dia: string;
@@ -60,20 +61,11 @@ export default function ReportesPage() {
     if (hasta) params.append('hasta', hasta);
     if (meseroId) params.append('meseroId', meseroId);
 
-    const API_URL = import.meta.env.VITE_API_URL;
-
-    console.log('API_URL:', API_URL);
-    console.log('FULL URL:', `${API_URL}/api/reportes`);
-
-    const res = await fetch(
-      `${API_URL}/api/reportes?${params.toString()}`,
-      {
-        credentials: 'include',
-      }
+    const { data } = await api.get<ReportesResponse>(
+      `/reportes?${params.toString()}`
     );
-    if (!res.ok) throw new Error('Error cargando reportes');
 
-    return res.json();
+    return data;
   };
 
   const { data, isLoading, error } = useQuery({
@@ -108,35 +100,40 @@ export default function ReportesPage() {
   );
 
   const exportarExcel = async () => {
-    const params = new URLSearchParams();
+    try {
+      const params = new URLSearchParams();
 
-    if (desde) params.append('desde', desde);
-    if (hasta) params.append('hasta', hasta);
-    if (meseroId) params.append('meseroId', meseroId);
-    const API_URL = import.meta.env.VITE_API_URL;
-    const res = await fetch(
-      `${API_URL}/api/reportes/exportar?${params.toString()}`,
-      {
-        method: 'GET',
-        credentials: 'include',
-      }
-    );
+      if (desde) params.append('desde', desde);
+      if (hasta) params.append('hasta', hasta);
+      if (meseroId) params.append('meseroId', meseroId);
 
-    if (!res.ok) throw new Error('Error exportando excel');
+      const response = await api.get(
+        `/reportes/exportar?${params.toString()}`,
+        {
+          responseType: 'blob',
+        }
+      );
 
-    const blob = await res.blob();
+      const url = window.URL.createObjectURL(
+        new Blob([response.data])
+      );
 
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
+      const a = document.createElement('a');
 
-    a.href = url;
-    a.download = `reporte-${desde}-${hasta}.xlsx`;
+      a.href = url;
+      a.download = `reporte-${desde}-${hasta}.xlsx`;
 
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+      document.body.appendChild(a);
 
-    window.URL.revokeObjectURL(url);
+      a.click();
+
+      a.remove();
+
+      window.URL.revokeObjectURL(url);
+
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const aplicarFiltroRapido = (tipo: 'HOY' | 'SEMANA' | 'MES') => {
@@ -164,7 +161,7 @@ export default function ReportesPage() {
 
     setFiltroRapido(tipo);
   };
-  
+
   return (
     <div className="p-6 bg-background min-h-screen">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 mb-8">

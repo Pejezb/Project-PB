@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Plus, Pencil, Users, X, Loader2 } from 'lucide-react';
+import { api } from '../../../services/api';
 
 interface Mesa {
   id: string;
@@ -8,9 +9,6 @@ interface Mesa {
   estado: 'LIBRE' | 'OCUPADA' | 'RESERVADA';
   sucursalId: string;
 }
-
-const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
 export default function MesasPage() {
   const [mesas, setMesas] = useState<Mesa[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,83 +30,103 @@ export default function MesasPage() {
     try {
       setLoading(true);
 
-      const res = await fetch(`${API}/api/mesas`, {
-        credentials: 'include',
-      });
+      const { data } = await api.get<Mesa[]>(
+        '/mesas'
+      );
 
-      const data = await res.json();
+      setMesas(
+        Array.isArray(data)
+          ? data
+          : []
+      );
 
-      if (!res.ok) throw new Error(data?.error || 'Error cargando mesas');
+    } catch (error: any) {
+      console.error(
+        'ERROR:',
+        error.response?.data ||
+        error.message
+      );
 
-      setMesas(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error('ERROR:', error);
       setMesas([]);
     } finally {
       setLoading(false);
     }
   };
-
   const mesasLibres = mesas.filter(m => m.estado === 'LIBRE').length;
   const mesasOcupadas = mesas.filter(m => m.estado === 'OCUPADA').length;
 
   const crearMesa = async () => {
-    const numero = Number(nuevaMesa.numero);
-    const capacidad = Number(nuevaMesa.capacidad);
+    try {
+      const numero = Number(
+        nuevaMesa.numero
+      );
 
-    if (!numero || !capacidad) return;
+      const capacidad = Number(
+        nuevaMesa.capacidad
+      );
 
-    const res = await fetch(`${API}/api/mesas`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ numero, capacidad }),
-    });
+      if (!numero || !capacidad)
+        return;
 
-    const data = await res.json();
+      const { data } =
+        await api.post<Mesa>(
+          '/mesas',
+          {
+            numero,
+            capacidad,
+          }
+        );
 
-    if (!res.ok) {
-      console.error(data?.error || 'Error creando mesa');
-      return;
+      setMesas((prev) => [
+        ...prev,
+        data,
+      ]);
+
+      setNuevaMesa({
+        numero: '',
+        capacidad: '',
+      });
+
+      setModalNuevaMesa(false);
+
+    } catch (error: any) {
+      console.error(
+        error.response?.data ||
+        error.message
+      );
     }
-
-    setMesas(prev => [...prev, data]);
-
-    setNuevaMesa({ numero: '', capacidad: '' });
-    setModalNuevaMesa(false);
   };
-
   const actualizarMesa = async () => {
-    if (!mesaEditando) return;
+    try {
+      if (!mesaEditando) return;
 
-    const res = await fetch(`${API}/api/mesas/${mesaEditando.id}`, {
-      method: 'PATCH',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        numero: mesaEditando.numero,
-        capacidad: mesaEditando.capacidad,
-        estado: mesaEditando.estado,
-      }),
-    });
+      const { data } =
+        await api.patch<Mesa>(
+          `/mesas/${mesaEditando.id}`,
+          {
+            numero: mesaEditando.numero,
+            capacidad: mesaEditando.capacidad,
+            estado: mesaEditando.estado,
+          }
+        );
 
-    const data = await res.json();
+      setMesas((prev) =>
+        prev.map((m) =>
+          m.id === data.id
+            ? data
+            : m
+        )
+      );
 
-    if (!res.ok) {
-      console.error(data?.error || 'Error actualizando mesa');
-      return;
+      setMesaEditando(null);
+      setModalEditarMesa(false);
+
+    } catch (error: any) {
+      console.error(
+        error.response?.data ||
+        error.message
+      );
     }
-
-    setMesas(prev =>
-      prev.map(m => (m.id === data.id ? data : m))
-    );
-
-    setMesaEditando(null);
-    setModalEditarMesa(false);
   };
 
   if (loading) {

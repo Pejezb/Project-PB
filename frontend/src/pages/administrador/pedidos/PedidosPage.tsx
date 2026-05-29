@@ -5,6 +5,7 @@ import {
   X,
   Printer,
 } from 'lucide-react';
+import { api } from '../../../services/api';
 
 
 interface ProductoPedido {
@@ -51,31 +52,27 @@ export default function PedidosPage() {
     try {
       if (mostrarLoading) setLoading(true);
 
-      const params = new URLSearchParams();
+      const params: Record<string, string> = {};
 
-      if (busqueda) params.append('busqueda', busqueda);
-      if (filtro !== 'TODOS') params.append('estado', filtro);
-
-      const response = await fetch(
-        `http://localhost:3001/api/pedidos?${params.toString()}`,
-        {
-          method: 'GET',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data?.error || 'Error al cargar pedidos');
+      if (busqueda) {
+        params.busqueda = busqueda;
       }
 
+      if (filtro !== 'TODOS') {
+        params.estado = filtro;
+      }
+
+      const { data } = await api.get<Pedido[]>('/pedidos', {
+        params,
+      });
+
       setPedidos(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error('Error cargando pedidos:', error);
+
+    } catch (error: any) {
+      console.error(
+        'Error cargando pedidos:',
+        error.response?.data || error.message
+      );
     } finally {
       setLoading(false);
     }
@@ -362,7 +359,7 @@ export default function PedidosPage() {
           {pedidosFiltrados.map(
             (pedido) => (
               <div
-                key={pedido.pedidoId}
+                key={pedido.id}
                 className="bg-white border border-border rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow"
               >
                 <div className="flex items-start justify-between mb-5">
