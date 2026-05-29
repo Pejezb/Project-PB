@@ -1,6 +1,17 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  Outlet,
+} from 'react-router-dom';
+
+import {
+  QueryClient,
+  QueryClientProvider,
+} from '@tanstack/react-query';
+
 import { Toaster } from 'react-hot-toast';
 
 import { AuthLayout } from './components/layout/AuthLayout';
@@ -13,6 +24,7 @@ import UsuariosPage from './pages/usuarios/UsuariosPage';
 import ConfiguracionPage from './pages/configuracion/ConfiguracionPage';
 
 import PedidosCocinaPage from './pages/pedidos-cocina/PedidosCocinaPage';
+
 import MesasPageMesero from './pages/mesero/MesasPage';
 import PedidoPage from './pages/mesero/PedidoPage';
 import PedidosActivosPage from './pages/mesero/PedidosActivosPage';
@@ -30,14 +42,21 @@ const qc = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
-      staleTime: 30_000,
+      staleTime: 30000,
       refetchOnWindowFocus: false,
     },
   },
 });
 
-function RequireAuth({ user }: { user: AuthUser | null }) {
-  if (!user) return <Navigate to="/login" replace />;
+function RequireAuth({
+  user,
+}: {
+  user: AuthUser | null;
+}) {
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
   return <Outlet />;
 }
 
@@ -53,11 +72,18 @@ function RequireRole({
   if (!user || !roles.includes(user.rol)) {
     return <Navigate to="/" replace />;
   }
+
   return <>{children}</>;
 }
 
-function HomeRedirect({ user }: { user: AuthUser | null }) {
-  if (!user) return <Navigate to="/login" replace />;
+function HomeRedirect({
+  user,
+}: {
+  user: AuthUser | null;
+}) {
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
 
   if (user.rol === 'COCINERO') {
     return <Navigate to="/pedidos-cocina" replace />;
@@ -71,52 +97,57 @@ function HomeRedirect({ user }: { user: AuthUser | null }) {
 }
 
 function AppRoutes() {
-  const { user, initAuth, listenToAuthEvents } = useAuthStore();
-  const [authReady, setAuthReady] = useState(false);
+  const {
+    user,
+    initAuth,
+    listenToAuthEvents,
+  } = useAuthStore();
+
+  const [authReady, setAuthReady] =
+    useState(false);
 
   useEffect(() => {
-    initAuth().finally(() => setAuthReady(true));
+    initAuth().finally(() =>
+      setAuthReady(true)
+    );
   }, [initAuth]);
 
   useEffect(() => {
-    const unsubscribe = listenToAuthEvents();
+    const unsubscribe =
+      listenToAuthEvents();
+
     return unsubscribe;
   }, [listenToAuthEvents]);
 
-  if (!authReady) return null;
-
-function RequireMesero({ children }: { children: React.ReactNode }) {
-  const { user } = useAuthStore();
-  if (user?.rol !== 'MESERO') {
-    return <Navigate to="/" replace />;
+  if (!authReady) {
+    return null;
   }
-  return <>{children}</>;
-}
 
-function RequireSoloAdmin({ children }: { children: React.ReactNode }) {
-  const { user } = useAuthStore();
-  if (user?.rol !== 'ADMIN') {
-    return <Navigate to="/" replace />;
-  }
-  return <>{children}</>;
-}
-
-export default function App() {
   return (
     <Routes>
-
-      <Route path="/login" element={<LoginPage />} />
+      <Route
+        path="/login"
+        element={<LoginPage />}
+      />
 
       <Route element={<AuthLayout />}>
-
-        <Route element={<RequireAuth user={user} />}>
-
-          <Route index element={<HomeRedirect user={user} />} />
+        <Route
+          element={<RequireAuth user={user} />}
+        >
+          <Route
+            index
+            element={
+              <HomeRedirect user={user} />
+            }
+          />
 
           <Route
             path="/dashboard"
             element={
-              <RequireRole user={user} roles={['DUENO', 'ADMIN']}>
+              <RequireRole
+                user={user}
+                roles={['DUENO', 'ADMIN']}
+              >
                 <DashboardPage />
               </RequireRole>
             }
@@ -125,142 +156,22 @@ export default function App() {
           <Route
             path="/sucursales"
             element={
-              <RequireRole user={user} roles={['DUENO', 'ADMIN']}>
+              <RequireRole
+                user={user}
+                roles={['DUENO', 'ADMIN']}
+              >
                 <SucursalesPage />
               </RequireRole>
             }
-          >
-            <Route
-              index
-              element={<HomeRedirect />}
-            />
-
-            <Route
-              path="/dashboard"
-              element={
-                <RequireAdmin>
-                  <DashboardPage />
-                </RequireAdmin>
-              }
-            />
-
-            <Route
-              path="/sucursales"
-              element={
-                <RequireDueno>
-                  <SucursalesPage />
-                </RequireDueno>
-              }
-            />
-
-            <Route
-              path="/sucursales/:id"
-              element={
-                <RequireDueno>
-                  <SucursalDetallePage />
-                </RequireDueno>
-              }
-            />
-
-            <Route
-              path="/usuarios"
-              element={
-                <RequireAdmin>
-                  <UsuariosPage />
-                </RequireAdmin>
-              }
-            />
-
-            <Route
-              path="/mesero/mesas"
-              element={
-                <RequireMesero>
-                  <MesasPageMesero />
-                </RequireMesero>
-              }
-            />
-            <Route
-              path="/mesero/pedido"
-              element={
-                <RequireMesero>
-                  <PedidoPage />
-                </RequireMesero>
-              }
-            />
-
-            <Route
-              path="/mesero/pedidos"
-              element={
-                <RequireMesero>
-                  <PedidosActivosPage />
-                </RequireMesero>
-              }
-            />
-        
-            <Route
-              path="/pedidos-cocina"
-              element={
-                <RequireCocinero>
-                  <PedidosCocinaPage />
-                </RequireCocinero>
-              }
-            />
-
-            <Route
-              path="/configuracion"
-              element={<ConfiguracionPage />}
-            />
-
-            <Route
-              path="/asistencias"
-              element={
-                <RequireSoloAdmin>
-                  <AsistenciasPage />
-                </RequireSoloAdmin>
-              }
-            />
-
-            <Route
-              path="/menu"
-              element={
-                <RequireSoloAdmin>
-                  <MenuPage />
-                </RequireSoloAdmin>
-              }
-            />
-
-            <Route
-              path="/reportes"
-              element={
-                <RequireAdmin>
-                  <ReportesPage />
-                </RequireAdmin>
-              }
-            />
-
-            <Route
-              path="/mesas"
-              element={
-                <RequireSoloAdmin>
-                  <MesasPage />
-                </RequireSoloAdmin>
-              }
-            />
-
-            <Route
-              path="/pedidos"
-              element={
-                <RequireSoloAdmin>
-                  <PedidosPage />
-                </RequireSoloAdmin>
-              }
-            />
-          </Route>
+          />
 
           <Route
             path="/sucursales/:id"
             element={
-              <RequireRole user={user} roles={['DUENO', 'ADMIN']}>
+              <RequireRole
+                user={user}
+                roles={['DUENO', 'ADMIN']}
+              >
                 <SucursalDetallePage />
               </RequireRole>
             }
@@ -269,7 +180,10 @@ export default function App() {
           <Route
             path="/usuarios"
             element={
-              <RequireRole user={user} roles={['DUENO', 'ADMIN']}>
+              <RequireRole
+                user={user}
+                roles={['DUENO', 'ADMIN']}
+              >
                 <UsuariosPage />
               </RequireRole>
             }
@@ -278,7 +192,10 @@ export default function App() {
           <Route
             path="/mesero/mesas"
             element={
-              <RequireRole user={user} roles={['MESERO']}>
+              <RequireRole
+                user={user}
+                roles={['MESERO']}
+              >
                 <MesasPageMesero />
               </RequireRole>
             }
@@ -287,7 +204,10 @@ export default function App() {
           <Route
             path="/mesero/pedido"
             element={
-              <RequireRole user={user} roles={['MESERO']}>
+              <RequireRole
+                user={user}
+                roles={['MESERO']}
+              >
                 <PedidoPage />
               </RequireRole>
             }
@@ -296,7 +216,10 @@ export default function App() {
           <Route
             path="/mesero/pedidos"
             element={
-              <RequireRole user={user} roles={['MESERO']}>
+              <RequireRole
+                user={user}
+                roles={['MESERO']}
+              >
                 <PedidosActivosPage />
               </RequireRole>
             }
@@ -305,7 +228,10 @@ export default function App() {
           <Route
             path="/pedidos-cocina"
             element={
-              <RequireRole user={user} roles={['COCINERO']}>
+              <RequireRole
+                user={user}
+                roles={['COCINERO']}
+              >
                 <PedidosCocinaPage />
               </RequireRole>
             }
@@ -314,7 +240,15 @@ export default function App() {
           <Route
             path="/configuracion"
             element={
-              <RequireRole user={user} roles={['DUENO', 'ADMIN', 'MESERO', 'COCINERO']}>
+              <RequireRole
+                user={user}
+                roles={[
+                  'DUENO',
+                  'ADMIN',
+                  'MESERO',
+                  'COCINERO',
+                ]}
+              >
                 <ConfiguracionPage />
               </RequireRole>
             }
@@ -323,18 +257,22 @@ export default function App() {
           <Route
             path="/asistencias"
             element={
-              <RequireRole user={user} roles={['DUENO', 'ADMIN']}>
+              <RequireRole
+                user={user}
+                roles={['ADMIN']}
+              >
                 <AsistenciasPage />
               </RequireRole>
             }
           />
 
-          <Route path="*" element={<HomeRedirect user={user} />} />
-
           <Route
             path="/menu"
             element={
-              <RequireRole user={user} roles={['DUENO', 'ADMIN']}>
+              <RequireRole
+                user={user}
+                roles={['ADMIN']}
+              >
                 <MenuPage />
               </RequireRole>
             }
@@ -343,7 +281,10 @@ export default function App() {
           <Route
             path="/reportes"
             element={
-              <RequireRole user={user} roles={['DUENO', 'ADMIN']}>
+              <RequireRole
+                user={user}
+                roles={['DUENO', 'ADMIN']}
+              >
                 <ReportesPage />
               </RequireRole>
             }
@@ -352,7 +293,10 @@ export default function App() {
           <Route
             path="/mesas"
             element={
-              <RequireRole user={user} roles={['DUENO', 'ADMIN']}>
+              <RequireRole
+                user={user}
+                roles={['ADMIN']}
+              >
                 <MesasPage />
               </RequireRole>
             }
@@ -361,17 +305,33 @@ export default function App() {
           <Route
             path="/pedidos"
             element={
-              <RequireRole user={user} roles={['DUENO', 'ADMIN']}>
+              <RequireRole
+                user={user}
+                roles={['ADMIN']}
+              >
                 <PedidosPage />
               </RequireRole>
             }
           />
-        </Route>
 
+          <Route
+            path="*"
+            element={
+              <HomeRedirect user={user} />
+            }
+          />
+        </Route>
       </Route>
 
-      <Route path="*" element={<Navigate to="/login" replace />} />
-
+      <Route
+        path="*"
+        element={
+          <Navigate
+            to="/login"
+            replace
+          />
+        }
+      />
     </Routes>
   );
 }
