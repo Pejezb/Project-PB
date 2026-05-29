@@ -406,6 +406,10 @@ export default function AsistenciasPage() {
                 </th>
 
                 <th className="px-5 py-3 text-center text-xs font-bold text-text-muted uppercase tracking-wide">
+                  Hora entrada
+                </th>
+
+                <th className="px-5 py-3 text-center text-xs font-bold text-text-muted uppercase tracking-wide">
                   Estado
                 </th>
               </tr>
@@ -452,6 +456,15 @@ export default function AsistenciasPage() {
                       }
                       className="w-4 h-4 rounded border-border accent-primary cursor-pointer"
                     />
+                  </td>
+
+                  <td className="px-5 py-4 text-center text-sm text-text-muted">
+                    {empleado.horaEntrada
+                      ? new Date(empleado.horaEntrada).toLocaleTimeString('es-PE', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })
+                      : '—'}
                   </td>
 
                   <td className="px-5 py-4 text-center">
