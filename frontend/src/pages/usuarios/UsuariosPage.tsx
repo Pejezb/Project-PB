@@ -279,10 +279,14 @@ export default function UsuariosPage() {
         <>
           <div className="bg-white rounded-xl border border-border shadow-card p-4 mb-4">
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">              <div>
-              <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">
+              <label
+                htmlFor="buscar-usuario"
+                className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1"
+              >
                 Buscar
               </label>
               <input
+                id="buscar-usuario"
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -292,14 +296,18 @@ export default function UsuariosPage() {
             </div>
 
               <div>
-                <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">
-                  Rol
-                </label>
-                <select
-                  value={rolFilter}
-                  onChange={(e) => setRolFilter(e.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                >
+                <label
+                    htmlFor="filtro-rol-usuario"
+                    className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1"
+                  >
+                    Rol
+                  </label>
+                  <select
+                    id="filtro-rol-usuario"
+                    value={rolFilter}
+                    onChange={(e) => setRolFilter(e.target.value)}
+                    className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  >
                   <option value="TODOS">Todos los roles</option>
                   <option value="ADMIN">Administrador</option>
                   <option value="MESERO">Mesero</option>
@@ -308,10 +316,14 @@ export default function UsuariosPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">
+                <label
+                  htmlFor="filtro-estado-usuario"
+                  className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1"
+                >
                   Estado
                 </label>
                 <select
+                  id="filtro-estado-usuario"
                   value={estadoFilter}
                   onChange={(e) => setEstadoFilter(e.target.value)}
                   className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
@@ -378,7 +390,7 @@ export default function UsuariosPage() {
                     <tr key={u.id} className="hover:bg-background/70 transition-colors">
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center text-sm font-semibold flex-shrink-0">
+                          <div className="w-10 h-10 rounded-full bg-green-800 text-white flex items-center justify-center text-sm font-semibold flex-shrink-0">
                             {getInitials(u.nombre)}
                           </div>
                           <div className="min-w-0">

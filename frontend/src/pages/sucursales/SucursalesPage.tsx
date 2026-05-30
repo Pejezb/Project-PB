@@ -297,14 +297,15 @@ export default function SucursalesPage() {
 
               <div className="flex items-center gap-2 pt-3 border-t border-border mt-auto">
                 <button
+                  type="button"
                   onClick={() => handleToggleSucursal(s)}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 ${
                     s.abierto
-                      ? 'bg-red-50 text-error hover:bg-red-100'
-                      : 'bg-green-50 text-primary hover:bg-green-100'
+                      ? 'bg-red-700 text-white hover:bg-red-800 focus-visible:outline-red-700'
+                      : 'bg-green-700 text-white hover:bg-green-800 focus-visible:outline-green-700'
                   }`}
                 >
-                  <Power size={14} />
+                  <Power size={14} aria-hidden="true" />
                   {s.abierto ? 'Cerrar local' : 'Abrir local'}
                 </button>
 
