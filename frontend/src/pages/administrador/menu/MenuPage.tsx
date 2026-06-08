@@ -58,6 +58,9 @@ export default function MenuPage() {
     tipo: 'COCINA' as 'COCINA' | 'COMPLEMENTO',
   });
 
+  const [erroresProducto, setErroresProducto] = useState<string[]>([]);
+  const [erroresEdicion, setErroresEdicion] = useState<string[]>([]);
+
   const cargarCategorias = async () => {
     try {
       const { data } = await api.get<Categoria[]>('/categorias');
@@ -97,47 +100,93 @@ export default function MenuPage() {
   };
 
   const crearProducto = async () => {
-    if (!nuevoProducto.nombre || !nuevoProducto.precio || !nuevoProducto.categoriaId)
+    const errores: string[] = [];
+
+    if (!nuevoProducto.nombre?.trim()) {
+      errores.push('El nombre del producto es obligatorio');
+    }
+
+    const precio = Number(nuevoProducto.precio);
+    if (!nuevoProducto.precio || isNaN(precio)) {
+      errores.push('Ingresa un precio válido');
+    } else if (precio <= 0) {
+      errores.push('El precio debe ser mayor a 0');
+    }
+
+    if (!nuevoProducto.categoriaId) {
+      errores.push('Debes seleccionar una categoría');
+    }
+
+    if (errores.length > 0) {
+      setErroresProducto(errores);
       return;
+    }
 
-    await api.post('/productos', {
-      nombre: nuevoProducto.nombre,
-      descripcion: nuevoProducto.descripcion,
-      precio: Number(nuevoProducto.precio),
-      imagen: nuevoProducto.imagen,
-      categoriaId: nuevoProducto.categoriaId,
-      sucursalId: 'sucursal-1',
-      tipo: nuevoProducto.tipo,
-    });
+    try {
+      await api.post('/productos', {
+        nombre: nuevoProducto.nombre,
+        descripcion: nuevoProducto.descripcion || '',
+        precio: Number(nuevoProducto.precio),
+        imagen: nuevoProducto.imagen,
+        categoriaId: nuevoProducto.categoriaId,
+        sucursalId: 'sucursal-1',
+        tipo: nuevoProducto.tipo,
+      });
 
-    setNuevoProducto({
-      nombre: '',
-      descripcion: '',
-      precio: '',
-      categoriaId: '',
-      imagen: '',
-      tipo: 'COCINA',
-    });
+      setNuevoProducto({
+        nombre: '',
+        descripcion: '',
+        precio: '',
+        categoriaId: '',
+        imagen: '',
+        tipo: 'COCINA',
+      });
 
-    setModalProducto(false);
-    cargarProductos();
+      setErroresProducto([]);
+      setModalProducto(false);
+      cargarProductos();
+    } catch (error) {
+      setErroresProducto(['Error al crear el producto']);
+      console.error(error);
+    }
   };
 
   const actualizarProducto = async () => {
     if (!productoEditando) return;
 
-    await api.put(`/productos/${productoEditando.id}`, {
-      nombre: productoEditando.nombre,
-      descripcion: productoEditando.descripcion,
-      precio: productoEditando.precio,
-      imagen: productoEditando.imagen,
-      categoriaId: productoEditando.categoria.id,
-      tipo: productoEditando.tipo,
-    });
+    const errores: string[] = [];
 
-    setModalEditar(false);
-    setProductoEditando(null);
-    cargarProductos();
+    if (!productoEditando.nombre?.trim()) {
+      errores.push('El nombre del producto es obligatorio');
+    }
+
+    if (productoEditando.precio <= 0 || isNaN(productoEditando.precio)) {
+      errores.push('El precio debe ser mayor a 0');
+    }
+
+    if (errores.length > 0) {
+      setErroresEdicion(errores);
+      return;
+    }
+
+    try {
+      await api.put(`/productos/${productoEditando.id}`, {
+        nombre: productoEditando.nombre,
+        descripcion: productoEditando.descripcion || '',
+        precio: productoEditando.precio,
+        imagen: productoEditando.imagen,
+        categoriaId: productoEditando.categoria.id,
+        tipo: productoEditando.tipo,
+      });
+
+      setErroresEdicion([]);
+      setModalEditar(false);
+      setProductoEditando(null);
+      cargarProductos();
+    } catch (error) {
+      setErroresEdicion(['Error al actualizar el producto']);
+      console.error(error);
+    }
   };
 
   const eliminarProducto = async (id: string) => {
@@ -486,11 +535,24 @@ export default function MenuPage() {
               </h2>
 
               <button
-                onClick={() => setModalProducto(false)}
+                onClick={() => {
+                  setModalProducto(false);
+                  setErroresProducto([]);
+                }}
               >
                 <X size={20} />
               </button>
             </div>
+
+            {erroresProducto.length > 0 && (
+              <div className="mb-5 p-4 bg-red-50 border border-red-200 rounded-xl">
+                <ul className="list-disc list-inside text-red-700 text-sm space-y-1">
+                  {erroresProducto.map((error, idx) => (
+                    <li key={idx}>{error}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="md:col-span-2">
@@ -556,18 +618,21 @@ export default function MenuPage() {
 
                 <input
                   type="number"
+                  min="0.01"
+                  step="0.01"
                   value={nuevoProducto.precio}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    const valor = e.target.value;
                     setNuevoProducto({
                       ...nuevoProducto,
-                      precio: e.target.value,
-                    })
-                  }
+                      precio: valor,
+                    });
+                  }}
+                  placeholder="0.00"
                   className="w-full border border-border rounded-xl px-4 py-3 outline-none"
                 />
               </div>
 
-              {/* FIX: value apunta a categoriaId, options usan categoria.id y categoria.nombre */}
               <div>
                 <label className="text-sm font-medium mb-2 block">
                   Categoría
@@ -638,7 +703,7 @@ export default function MenuPage() {
 
                 <textarea
                   rows={4}
-                  value={nuevoProducto.descripcion}
+                  value={nuevoProducto.descripcion || ''}
                   onChange={(e) =>
                     setNuevoProducto({
                       ...nuevoProducto,
@@ -681,11 +746,22 @@ export default function MenuPage() {
                 onClick={() => {
                   setModalEditar(false);
                   setProductoEditando(null);
+                  setErroresEdicion([]);
                 }}
               >
                 <X size={20} />
               </button>
             </div>
+
+            {erroresEdicion.length > 0 && (
+              <div className="mb-5 p-4 bg-red-50 border border-red-200 rounded-xl">
+                <ul className="list-disc list-inside text-red-700 text-sm space-y-1">
+                  {erroresEdicion.map((error, idx) => (
+                    <li key={idx}>{error}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="md:col-span-2">
@@ -751,6 +827,8 @@ export default function MenuPage() {
 
                 <input
                   type="number"
+                  min="0.01"
+                  step="0.01"
                   value={productoEditando.precio}
                   onChange={(e) =>
                     setProductoEditando({
@@ -834,7 +912,7 @@ export default function MenuPage() {
 
                 <textarea
                   rows={4}
-                  value={productoEditando.descripcion}
+                  value={productoEditando.descripcion || ''}
                   onChange={(e) =>
                     setProductoEditando({
                       ...productoEditando,
