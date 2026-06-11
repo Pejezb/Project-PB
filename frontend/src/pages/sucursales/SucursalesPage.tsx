@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, MapPin, Phone, Clock, Power, Building2, Eye, UserCircle, Trash2 } from 'lucide-react';
@@ -58,6 +58,8 @@ export default function SucursalesPage() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Sucursal | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [estadoFilter, setEstadoFilter] = useState<'TODAS' | 'ABIERTAS' | 'CERRADAS'>('TODAS');
 
   const { data: sucursales = [], isLoading } = useQuery({
     queryKey: ['sucursales'],
@@ -68,6 +70,30 @@ export default function SucursalesPage() {
     queryKey: ['usuarios', 'sucursales-staff'],
     queryFn: () => usuariosService.getAll(),
   });
+
+  const sucursalesFiltradas = useMemo(() => {
+    const search = searchTerm.trim().toLowerCase();
+
+    return sucursales.filter((sucursal) => {
+      const matchesSearch =
+        !search ||
+        sucursal.nombre.toLowerCase().includes(search);
+
+      const matchesEstado =
+        estadoFilter === 'TODAS' ||
+        (estadoFilter === 'ABIERTAS' && sucursal.abierto) ||
+        (estadoFilter === 'CERRADAS' && !sucursal.abierto);
+
+      return matchesSearch && matchesEstado;
+    });
+  }, [sucursales, searchTerm, estadoFilter]);
+
+  const hayFiltrosActivos = searchTerm.trim() !== '' || estadoFilter !== 'TODAS';
+
+  const limpiarFiltros = () => {
+    setSearchTerm('');
+    setEstadoFilter('TODAS');
+  };
 
   const crear = useMutation({
     mutationFn: () => sucursalesService.create({
@@ -224,9 +250,64 @@ export default function SucursalesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold text-text">Mis sucursales</h2>
-          <p className="text-sm text-text-muted">{sucursales.length} sucursal{sucursales.length !== 1 ? 'es' : ''} registrada{sucursales.length !== 1 ? 's' : ''}</p>
+          <p className="text-sm text-text-muted">
+            {sucursales.length} sucursal{sucursales.length !== 1 ? 'es' : ''} registrada{sucursales.length !== 1 ? 's' : ''}
+          </p>
         </div>
         <Button onClick={openNew}><Plus size={16} /> Nueva sucursal</Button>
+      </div>
+
+      <div className="bg-white rounded-xl border border-border shadow-card p-4 space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="md:col-span-2">
+            <label htmlFor="buscar-sucursal" className="text-sm font-medium text-text block mb-1">
+              Buscar por nombre
+            </label>
+            <input
+              id="buscar-sucursal"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Ej: Local Centro"
+              className="w-full border border-border rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="estado-sucursal" className="text-sm font-medium text-text block mb-1">
+              Estado
+            </label>
+            <select
+              id="estado-sucursal"
+              value={estadoFilter}
+              onChange={(e) => setEstadoFilter(e.target.value as 'TODAS' | 'ABIERTAS' | 'CERRADAS')}
+              className="w-full border border-border rounded-lg px-3 py-2 text-sm text-text bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="TODAS">Todas</option>
+              <option value="ABIERTAS">Abiertas</option>
+              <option value="CERRADAS">Cerradas</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <p className="text-sm text-text-muted">
+            Mostrando{' '}
+            <span className="font-semibold text-text">{sucursalesFiltradas.length}</span>
+            {' '}de{' '}
+            <span className="font-semibold text-text">{sucursales.length}</span>
+            {' '}sucursales
+          </p>
+
+          {hayFiltrosActivos && (
+            <button
+              type="button"
+              onClick={limpiarFiltros}
+              className="self-start sm:self-auto px-4 py-2 rounded-lg text-sm font-semibold bg-green-700 text-white hover:bg-green-800 transition-colors"
+            >
+              Limpiar filtros
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Grid */}
@@ -240,9 +321,17 @@ export default function SucursalesPage() {
           <p className="font-medium">No tienes sucursales aún</p>
           <p className="text-sm mt-1">Crea tu primera sucursal para comenzar</p>
         </div>
+      ) : sucursalesFiltradas.length === 0 ? (
+        <div className="text-center py-16 text-text-muted bg-white rounded-xl border border-border">
+          <Building2 size={40} className="mx-auto mb-3 opacity-20" />
+          <p className="font-medium">No se encontraron sucursales</p>
+          <p className="text-sm mt-1">
+            Intenta cambiar el nombre buscado o el estado seleccionado.
+          </p>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {sucursales.map((s) => (
+          {sucursalesFiltradas.map((s) => (
             <div
               key={s.id}
               className="bg-white rounded-xl border border-border shadow-card p-5 flex flex-col gap-4 hover:shadow-md transition-shadow"
