@@ -40,7 +40,24 @@ const parseDiasOperacion = (value?: string) => {
 };
 
 const formatDiasOperacion = (dias: string[]) => {
-  return dias.join('-');
+  return DIAS_OPERACION
+    .filter((dia) => dias.includes(dia.value))
+    .map((dia) => dia.value)
+    .join('-');
+};
+
+const formatDiasOperacionTexto = (value?: string) => {
+  const dias = parseDiasOperacion(value);
+
+  if (dias.length === 0) return 'Sin días configurados';
+
+  const labels = DIAS_OPERACION
+    .filter((dia) => dias.includes(dia.value))
+    .map((dia) => dia.label);
+
+  if (labels.length === 7) return 'Lunes a domingo';
+
+  return labels.join(', ');
 };
 
 const emptyForm: FormState = {
@@ -371,7 +388,11 @@ export default function SucursalesPage() {
                     <Clock size={14} className="flex-shrink-0" />
                     <span>
                       {s.horarioApertura} – {s.horarioCierre}
-                      {s.diasOperacion && <span className="ml-1 text-xs">({s.diasOperacion})</span>}
+                      {s.diasOperacion && (
+                        <span className="ml-1 text-xs">
+                          ({formatDiasOperacionTexto(s.diasOperacion)})
+                        </span>
+                      )}
                     </span>
                   </p>
                 )}
