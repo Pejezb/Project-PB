@@ -43,9 +43,11 @@ export function AuthLayout() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {/*
             <button className="p-2 rounded-lg text-text-muted hover:text-text hover:bg-background transition-colors">
               <Bell size={18} />
             </button>
+            */}
           </div>
         </header>
         <main className="flex-1 overflow-y-auto p-4 lg:p-6">

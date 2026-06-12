@@ -18,8 +18,7 @@ export function Button({ variant = 'primary', size = 'md', loading, disabled, cl
         size === 'md' && 'px-4 py-2.5 text-sm',
         size === 'lg' && 'px-6 py-3 text-base',
         // Variantes
-        variant === 'primary'   && 'bg-primary text-white hover:bg-primary-dark focus-visible:outline-primary disabled:opacity-50 disabled:cursor-not-allowed',
-        variant === 'secondary' && 'bg-white text-text border border-border hover:bg-gray-50 focus-visible:outline-primary disabled:opacity-50',
+        variant === 'primary'   && 'bg-green-700 text-white hover:bg-green-800 focus-visible:outline-green-700 disabled:opacity-50 disabled:cursor-not-allowed',        variant === 'secondary' && 'bg-white text-text border border-border hover:bg-gray-50 focus-visible:outline-primary disabled:opacity-50',
         variant === 'danger'    && 'bg-error text-white hover:bg-red-700 focus-visible:outline-error disabled:opacity-50',
         variant === 'ghost'     && 'bg-transparent text-text-muted hover:text-text hover:bg-gray-100 focus-visible:outline-primary',
         className

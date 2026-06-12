@@ -158,7 +158,7 @@ function AppRoutes() {
             element={
               <RequireRole
                 user={user}
-                roles={['DUENO', 'ADMIN']}
+                roles={['DUENO']}
               >
                 <SucursalesPage />
               </RequireRole>
@@ -170,7 +170,7 @@ function AppRoutes() {
             element={
               <RequireRole
                 user={user}
-                roles={['DUENO', 'ADMIN']}
+                roles={['DUENO']}
               >
                 <SucursalDetallePage />
               </RequireRole>

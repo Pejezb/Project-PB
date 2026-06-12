@@ -84,10 +84,14 @@ export default function UsuariosPage() {
     queryFn: () => usuariosService.getAll(),
   });
 
+  const usuariosVisibles = useMemo(() => {
+    return usuarios.filter((usuario) => usuario.rol !== 'DUENO');
+  }, [usuarios]);
+
   const usuariosFiltrados = useMemo(() => {
     const search = searchTerm.trim().toLowerCase();
 
-    return usuarios.filter((usuario) => {
+    return usuariosVisibles.filter((usuario) => {
       const matchesSearch =
         !search ||
         usuario.nombre.toLowerCase().includes(search) ||
@@ -104,12 +108,12 @@ export default function UsuariosPage() {
 
       return matchesSearch && matchesRol && matchesEstado;
     });
-  }, [usuarios, searchTerm, rolFilter, estadoFilter]);
+  }, [usuariosVisibles, searchTerm, rolFilter, estadoFilter]);
 
   const { data: sucursales = [] } = useQuery({
     queryKey: ['sucursales'],
     queryFn: sucursalesService.getAll,
-    enabled: canViewSucursal,
+    enabled: isDueno,
   });
 
   const sucursalesDisponibles = useMemo(() => {
@@ -182,7 +186,7 @@ export default function UsuariosPage() {
     setIsModalEditing(true);
     setForm({
       ...emptyForm,
-      sucursalId: user?.sucursalId ?? '',
+      sucursalId: isDueno ? '' : user?.sucursalId ?? '',
     });
     setShowModal(true);
   };
@@ -259,7 +263,9 @@ export default function UsuariosPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold text-text">Usuarios</h2>
-          <p className="text-sm text-text-muted">{usuarios.length} usuario{usuarios.length !== 1 ? 's' : ''} registrado{usuarios.length !== 1 ? 's' : ''}</p>
+          <p className="text-sm text-text-muted">
+            {usuariosVisibles.length} usuario{usuariosVisibles.length !== 1 ? 's' : ''} registrado{usuariosVisibles.length !== 1 ? 's' : ''}
+          </p>
         </div>
         <Button onClick={openNew}><Plus size={16} /> Nuevo usuario</Button>
       </div>
@@ -269,7 +275,7 @@ export default function UsuariosPage() {
         <div className="space-y-2">
           {[1, 2, 3].map(i => <div key={i} className="bg-white rounded-xl border border-border p-4 animate-pulse h-16" />)}
         </div>
-      ) : usuarios.length === 0 ? (
+      ) : usuariosVisibles.length === 0 ? (
         <div className="text-center py-16 text-text-muted">
           <UserCircle size={40} className="mx-auto mb-3 opacity-20" />
           <p className="font-medium">No hay usuarios aún</p>
@@ -279,10 +285,14 @@ export default function UsuariosPage() {
         <>
           <div className="bg-white rounded-xl border border-border shadow-card p-4 mb-4">
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">              <div>
-              <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">
+              <label
+                htmlFor="buscar-usuario"
+                className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1"
+              >
                 Buscar
               </label>
               <input
+                id="buscar-usuario"
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -292,14 +302,18 @@ export default function UsuariosPage() {
             </div>
 
               <div>
-                <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">
-                  Rol
-                </label>
-                <select
-                  value={rolFilter}
-                  onChange={(e) => setRolFilter(e.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                >
+                <label
+                    htmlFor="filtro-rol-usuario"
+                    className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1"
+                  >
+                    Rol
+                  </label>
+                  <select
+                    id="filtro-rol-usuario"
+                    value={rolFilter}
+                    onChange={(e) => setRolFilter(e.target.value)}
+                    className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  >
                   <option value="TODOS">Todos los roles</option>
                   <option value="ADMIN">Administrador</option>
                   <option value="MESERO">Mesero</option>
@@ -308,10 +322,14 @@ export default function UsuariosPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">
+                <label
+                  htmlFor="filtro-estado-usuario"
+                  className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1"
+                >
                   Estado
                 </label>
                 <select
+                  id="filtro-estado-usuario"
                   value={estadoFilter}
                   onChange={(e) => setEstadoFilter(e.target.value)}
                   className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
@@ -326,7 +344,7 @@ export default function UsuariosPage() {
             <div className="flex items-center justify-between mt-4 pt-3 border-t border-border">
               <p className="text-sm text-text-muted">
                 Mostrando <span className="font-semibold text-text">{usuariosFiltrados.length}</span> de{' '}
-                <span className="font-semibold text-text">{usuarios.length}</span> usuarios
+                <span className="font-semibold text-text">{usuariosVisibles.length}</span> usuarios
               </p>
 
               {(searchTerm || rolFilter !== 'TODOS' || estadoFilter !== 'TODOS') && (
@@ -378,7 +396,7 @@ export default function UsuariosPage() {
                     <tr key={u.id} className="hover:bg-background/70 transition-colors">
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center text-sm font-semibold flex-shrink-0">
+                          <div className="w-10 h-10 rounded-full bg-green-800 text-white flex items-center justify-center text-sm font-semibold flex-shrink-0">
                             {getInitials(u.nombre)}
                           </div>
                           <div className="min-w-0">
@@ -453,7 +471,7 @@ export default function UsuariosPage() {
                   <button
                     type="button"
                     onClick={() => setIsModalEditing(true)}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-dark transition-colors"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-green-700 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-green-700 focus:ring-offset-2 transition-colors"
                   >
                     <Pencil size={14} />
                     Editar
@@ -463,8 +481,9 @@ export default function UsuariosPage() {
 
               <form onSubmit={handleSubmit} className="space-y-3">
                 <div>
-                  <label className="text-sm font-medium text-text block mb-1">Nombre *</label>
+                  <label htmlFor="usuario-nombre" className="text-sm font-medium text-text block mb-1">Nombre *</label>
                   <input
+                    id="usuario-nombre"
                     value={form.nombre}
                     onChange={e => handleChange('nombre', e.target.value)}
                     placeholder="Juan Pérez"
@@ -476,8 +495,9 @@ export default function UsuariosPage() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-text block mb-1">Email *</label>
+                  <label htmlFor="usuario-email" className="text-sm font-medium text-text block mb-1">Email *</label>
                   <input
+                    id="usuario-email"
                     type="email"
                     value={form.email}
                     onChange={e => handleChange('email', e.target.value)}
@@ -491,12 +511,13 @@ export default function UsuariosPage() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-text block mb-1">
+                  <label htmlFor="usuario-password" className="text-sm font-medium text-text block mb-1">
                     {editing ? (
                       <span className="flex items-center gap-1.5"><KeyRound size={13} /> Nueva contraseña (dejar vacío para no cambiar)</span>
                     ) : 'Contraseña *'}
                   </label>
                   <input
+                    id="usuario-password"
                     type="password"
                     value={form.password}
                     onChange={e => handleChange('password', e.target.value)}
@@ -509,9 +530,10 @@ export default function UsuariosPage() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-text block mb-1">Rol *</label>
+                  <label htmlFor="usuario-rol" className="text-sm font-medium text-text block mb-1">Rol *</label>
 
                   <select
+                    id="usuario-rol"
                     value={form.rol}
                     onChange={e => handleChange('rol', e.target.value)}
                     disabled={isReadOnly}
@@ -531,26 +553,47 @@ export default function UsuariosPage() {
 
                 {canViewSucursal && (
                   <div>
-                    <label className="text-sm font-medium text-text block mb-1">
-                      Sucursal
+                    <label htmlFor="usuario-sucursal" className="text-sm font-medium text-text block mb-1">
+                      Sucursal *
                     </label>
 
-                    <input
-                      value={
-                        editing?.sucursal?.nombre ||
-                        sucursales.find(s => s.id === form.sucursalId)?.nombre ||
-                        'Sin sucursal'
-                      }
-                      disabled
-                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-gray-100 text-text-muted cursor-not-allowed"
-                    />
+                    {canEditSucursal && !isReadOnly ? (
+                      <select
+                        id="usuario-sucursal"
+                        value={form.sucursalId}
+                        onChange={(e) => handleChange('sucursalId', e.target.value)}
+                        required
+                        className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
+                      >
+                        <option value="">Selecciona una sucursal</option>
+
+                        {sucursalesDisponibles.map((sucursal) => (
+                          <option key={sucursal.id} value={sucursal.id}>
+                            {sucursal.nombre}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        id="usuario-sucursal"
+                        value={
+                          editing?.sucursal?.nombre ||
+                          sucursales.find((s) => s.id === form.sucursalId)?.nombre ||
+                          user?.sucursal?.nombre ||
+                          'Sin sucursal'
+                        }
+                        disabled
+                        className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-gray-100 text-text-muted cursor-not-allowed"
+                      />
+                    )}
                   </div>
                 )}
 
                 {editing && (
                   <div>
-                    <label className="text-sm font-medium text-text block mb-1">Fecha de creación</label>
+                    <label htmlFor="usuario-creado-en" className="text-sm font-medium text-text block mb-1">Fecha de creación</label>
                     <input
+                      id="usuario-creado-en"
                       value={formatDate(editing.creadoEn)}
                       disabled
                       className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-gray-100 text-text-muted cursor-not-allowed"
@@ -558,10 +601,10 @@ export default function UsuariosPage() {
                   </div>
                 )}
 
-                <div className="border-t border-border pt-4 mt-4">
-                  <label className="text-sm font-medium text-text block mb-2">
+                <fieldset className="border-t border-border pt-4 mt-4">
+                  <legend className="text-sm font-medium text-text block mb-2">
                     Estado del usuario
-                  </label>
+                  </legend>
 
                   <div className="flex items-center justify-between gap-4 rounded-xl border border-border px-4 py-3 bg-background/40">
                     <div>
@@ -587,7 +630,7 @@ export default function UsuariosPage() {
                       {form.activo ? 'Activo' : 'Inactivo'}
                     </button>
                   </div>
-                </div>
+                </fieldset>
 
                 <div className="flex gap-3 pt-2">
                   <Button type="button" variant="secondary" className="flex-1" onClick={closeModal}>

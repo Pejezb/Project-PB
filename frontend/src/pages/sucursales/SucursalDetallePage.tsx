@@ -58,7 +58,10 @@ const parseDiasOperacion = (value?: string) => {
 };
 
 const formatDiasOperacion = (dias: string[]) => {
-  return dias.join('-');
+  return DIAS_OPERACION
+    .filter((dia) => dias.includes(dia.value))
+    .map((dia) => dia.value)
+    .join('-');
 };
 
 const ROL_VARIANTS: Record<Rol, 'success' | 'warning' | 'info' | 'neutral'> = {
@@ -81,6 +84,20 @@ const formatDate = (value?: string) => {
     hour: '2-digit',
     minute: '2-digit',
   });
+};
+
+const formatDiasOperacionTexto = (value?: string) => {
+  const dias = parseDiasOperacion(value);
+
+  if (dias.length === 0) return 'Sin días configurados';
+
+  const labels = dias
+    .map((dia) => DIAS_OPERACION.find((item) => item.value === dia)?.label)
+    .filter(Boolean);
+
+  if (labels.length === 7) return 'Lunes a domingo';
+
+  return labels.join(', ');
 };
 
 export default function SucursalDetallePage() {
@@ -126,6 +143,17 @@ export default function SucursalDetallePage() {
   const administradores = useMemo(() => {
     return staffSucursal.filter((usuario) => usuario.rol === 'ADMIN');
   }, [staffSucursal]);
+
+  const administradoresTooltip = administradores
+    .map((admin) => admin.nombre)
+    .join('\n');
+
+  const administradorTexto =
+    administradores.length === 0
+      ? 'Sin administrador'
+      : administradores.length === 1
+        ? administradores[0].nombre
+        : `${administradores.length} administradores`;
 
   const openEditModal = () => {
     if (!sucursal) return;
@@ -379,14 +407,35 @@ export default function SucursalDetallePage() {
             </div>
 
             <div className="flex justify-between gap-4">
-              <span className="text-text-muted">Administrador</span>
-              <span className="font-medium text-text text-right">
-                {administradores.length === 0
-                  ? 'Sin administrador'
-                  : administradores.length === 1
-                    ? administradores[0].nombre
-                    : `${administradores.length} administradores`}
+              <span className="text-text-muted">
+                {administradores.length > 1 ? 'Administradores' : 'Administrador'}
               </span>
+
+              {administradores.length > 1 ? (
+                <span className="relative group text-right">
+                  <span className="inline-flex items-center rounded-full bg-green-50 px-2.5 py-1 text-xs font-semibold text-green-700 border border-green-100">
+                    {administradorTexto}
+                  </span>
+
+                  <div className="pointer-events-none absolute right-0 top-full z-20 mt-2 hidden w-56 rounded-xl border border-border bg-white p-3 text-left shadow-lg group-hover:block">
+                    <p className="text-xs font-semibold text-text mb-2">
+                      Administradores asignados
+                    </p>
+
+                    <div className="space-y-1">
+                      {administradores.map((admin) => (
+                        <p key={admin.id} className="text-xs text-text-muted">
+                          {admin.nombre}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                </span>
+              ) : (
+                <span className="font-medium text-text text-right">
+                  {administradorTexto}
+                </span>
+              )}
             </div>
 
             <div className="flex justify-between gap-4">
@@ -423,7 +472,7 @@ export default function SucursalDetallePage() {
               <CalendarDays size={18} className="text-primary" />
               <div>
                 <p className="text-sm font-medium text-text">
-                  {sucursal.diasOperacion || 'Sin días configurados'}
+                  {formatDiasOperacionTexto(sucursal.diasOperacion)}
                 </p>
                 <p className="text-xs text-text-muted">Días de operación</p>
               </div>

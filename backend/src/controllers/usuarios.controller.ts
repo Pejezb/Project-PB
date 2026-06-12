@@ -18,12 +18,21 @@ export async function getUsuarios(req: Request, res: Response): Promise<void> {
     res.status(400).json({ error: 'sucursalId no encontrado en el token' }); return;
   }
 
-  const where = sucursalId ? { sucursalId } : {};
+  const where = {
+    ...(sucursalId ? { sucursalId } : {}),
+    rol: { not: Rol.DUENO },
+  };
 
   const usuarios = await prisma.usuario.findMany({
     where,
     select: {
-      id: true, nombre: true, email: true, rol: true, activo: true, creadoEn: true,
+      id: true,
+      nombre: true,
+      email: true,
+      rol: true,
+      activo: true,
+      creadoEn: true,
+      sucursalId: true,
       sucursal: { select: { id: true, nombre: true } },
     },
     orderBy: { creadoEn: 'asc' },
@@ -38,7 +47,13 @@ export async function createUsuario(req: Request, res: Response): Promise<void> 
     res.status(400).json({ error: 'Todos los campos son requeridos' }); return;
   }
   if (!Object.values(Rol).includes(rol)) {
-    res.status(400).json({ error: `Rol inválido. Válidos: ${Object.values(Rol).join(', ')}` }); return;
+    res.status(400).json({ error: `Rol inválido. Válidos: ${Object.values(Rol).join(', ')}` });
+    return;
+  }
+
+  if (rol === Rol.DUENO) {
+    res.status(400).json({ error: 'No se puede crear usuarios con rol DUENO desde este módulo' });
+    return;
   }
 
   const targetSucursalId = req.user!.rol === 'DUENO' ? sucursalId : req.user!.sucursalId!;
@@ -50,7 +65,7 @@ export async function createUsuario(req: Request, res: Response): Promise<void> 
   const hash = await bcrypt.hash(password, 10);
   const usuario = await prisma.usuario.create({
     data: { nombre, email, passwordHash: hash, rol, sucursalId: targetSucursalId },
-    select: { id: true, nombre: true, email: true, rol: true, activo: true },
+    select: { id: true, nombre: true, email: true, rol: true, activo: true, creadoEn: true, sucursalId: true, sucursal: { select: { id: true, nombre: true } } },
   });
   res.status(201).json(usuario);
 }
@@ -58,6 +73,11 @@ export async function createUsuario(req: Request, res: Response): Promise<void> 
 // PATCH /usuarios/:id — actualizar usuario
 export async function updateUsuario(req: Request, res: Response): Promise<void> {
   const { nombre, email, rol, activo, sucursalId, password } = req.body;
+
+  if (rol === Rol.DUENO) {
+    res.status(400).json({ error: 'No se puede asignar el rol DUENO desde este módulo' });
+    return;
+  }
 
   const emailNormalizado =
     typeof email === 'string' ? email.trim().toLowerCase() : undefined;
@@ -85,6 +105,29 @@ export async function updateUsuario(req: Request, res: Response): Promise<void> 
     }
   }
 
+  if (req.user!.rol !== 'DUENO') {
+    const usuarioActual = await prisma.usuario.findUnique({
+      where: { id: req.params.id },
+      select: { sucursalId: true, rol: true },
+    });
+
+    if (!usuarioActual) {
+      res.status(404).json({ error: 'Usuario no encontrado' });
+      return;
+    }
+
+    if (usuarioActual.rol === Rol.DUENO) {
+      res.status(403).json({ error: 'No tienes permiso para modificar este usuario' });
+      return;
+    }
+
+    if (usuarioActual.sucursalId !== req.user!.sucursalId) {
+      res.status(403).json({ error: 'No tienes permiso para modificar usuarios de otra sucursal' });
+      return;
+    }
+  }
+  
+  
   const passwordData = password
     ? { passwordHash: await bcrypt.hash(password, 10) }
     : {};
@@ -96,7 +139,7 @@ export async function updateUsuario(req: Request, res: Response): Promise<void> 
       ...(emailNormalizado !== undefined ? { email: emailNormalizado } : {}),
       ...(rol !== undefined ? { rol } : {}),
       ...(activo !== undefined ? { activo } : {}),
-      ...(sucursalId ? { sucursalId } : {}),
+      ...(req.user!.rol === 'DUENO' && sucursalId ? { sucursalId } : {}),
       ...passwordData,
     },
     select: {
@@ -116,6 +159,26 @@ export async function updateUsuario(req: Request, res: Response): Promise<void> 
 
 // DELETE /usuarios/:id — eliminar usuario
 export async function deleteUsuario(req: Request, res: Response): Promise<void> {
+  const usuario = await prisma.usuario.findUnique({
+    where: { id: req.params.id },
+    select: { sucursalId: true, rol: true },
+  });
+
+  if (!usuario) {
+    res.status(404).json({ error: 'Usuario no encontrado' });
+    return;
+  }
+
+  if (usuario.rol === Rol.DUENO) {
+    res.status(403).json({ error: 'No se puede eliminar un usuario dueño desde este módulo' });
+    return;
+  }
+
+  if (req.user!.rol !== 'DUENO' && usuario.sucursalId !== req.user!.sucursalId) {
+    res.status(403).json({ error: 'No tienes permiso para eliminar usuarios de otra sucursal' });
+    return;
+  }
+
   await prisma.usuario.delete({ where: { id: req.params.id } });
   res.json({ mensaje: 'Usuario eliminado' });
 }

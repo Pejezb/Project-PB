@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, MapPin, Phone, Clock, Power, Building2, Eye, UserCircle, Trash2 } from 'lucide-react';
@@ -40,7 +40,24 @@ const parseDiasOperacion = (value?: string) => {
 };
 
 const formatDiasOperacion = (dias: string[]) => {
-  return dias.join('-');
+  return DIAS_OPERACION
+    .filter((dia) => dias.includes(dia.value))
+    .map((dia) => dia.value)
+    .join('-');
+};
+
+const formatDiasOperacionTexto = (value?: string) => {
+  const dias = parseDiasOperacion(value);
+
+  if (dias.length === 0) return 'Sin días configurados';
+
+  const labels = DIAS_OPERACION
+    .filter((dia) => dias.includes(dia.value))
+    .map((dia) => dia.label);
+
+  if (labels.length === 7) return 'Lunes a domingo';
+
+  return labels.join(', ');
 };
 
 const emptyForm: FormState = {
@@ -58,6 +75,8 @@ export default function SucursalesPage() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Sucursal | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [estadoFilter, setEstadoFilter] = useState<'TODAS' | 'ABIERTAS' | 'CERRADAS'>('TODAS');
 
   const { data: sucursales = [], isLoading } = useQuery({
     queryKey: ['sucursales'],
@@ -68,6 +87,30 @@ export default function SucursalesPage() {
     queryKey: ['usuarios', 'sucursales-staff'],
     queryFn: () => usuariosService.getAll(),
   });
+
+  const sucursalesFiltradas = useMemo(() => {
+    const search = searchTerm.trim().toLowerCase();
+
+    return sucursales.filter((sucursal) => {
+      const matchesSearch =
+        !search ||
+        sucursal.nombre.toLowerCase().includes(search);
+
+      const matchesEstado =
+        estadoFilter === 'TODAS' ||
+        (estadoFilter === 'ABIERTAS' && sucursal.abierto) ||
+        (estadoFilter === 'CERRADAS' && !sucursal.abierto);
+
+      return matchesSearch && matchesEstado;
+    });
+  }, [sucursales, searchTerm, estadoFilter]);
+
+  const hayFiltrosActivos = searchTerm.trim() !== '' || estadoFilter !== 'TODAS';
+
+  const limpiarFiltros = () => {
+    setSearchTerm('');
+    setEstadoFilter('TODAS');
+  };
 
   const crear = useMutation({
     mutationFn: () => sucursalesService.create({
@@ -224,9 +267,64 @@ export default function SucursalesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold text-text">Mis sucursales</h2>
-          <p className="text-sm text-text-muted">{sucursales.length} sucursal{sucursales.length !== 1 ? 'es' : ''} registrada{sucursales.length !== 1 ? 's' : ''}</p>
+          <p className="text-sm text-text-muted">
+            {sucursales.length} sucursal{sucursales.length !== 1 ? 'es' : ''} registrada{sucursales.length !== 1 ? 's' : ''}
+          </p>
         </div>
         <Button onClick={openNew}><Plus size={16} /> Nueva sucursal</Button>
+      </div>
+
+      <div className="bg-white rounded-xl border border-border shadow-card p-4 space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="md:col-span-2">
+            <label htmlFor="buscar-sucursal" className="text-sm font-medium text-text block mb-1">
+              Buscar por nombre
+            </label>
+            <input
+              id="buscar-sucursal"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Ej: Local Centro"
+              className="w-full border border-border rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="estado-sucursal" className="text-sm font-medium text-text block mb-1">
+              Estado
+            </label>
+            <select
+              id="estado-sucursal"
+              value={estadoFilter}
+              onChange={(e) => setEstadoFilter(e.target.value as 'TODAS' | 'ABIERTAS' | 'CERRADAS')}
+              className="w-full border border-border rounded-lg px-3 py-2 text-sm text-text bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="TODAS">Todas</option>
+              <option value="ABIERTAS">Abiertas</option>
+              <option value="CERRADAS">Cerradas</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <p className="text-sm text-text-muted">
+            Mostrando{' '}
+            <span className="font-semibold text-text">{sucursalesFiltradas.length}</span>
+            {' '}de{' '}
+            <span className="font-semibold text-text">{sucursales.length}</span>
+            {' '}sucursales
+          </p>
+
+          {hayFiltrosActivos && (
+            <button
+              type="button"
+              onClick={limpiarFiltros}
+              className="self-start sm:self-auto px-4 py-2 rounded-lg text-sm font-semibold bg-green-700 text-white hover:bg-green-800 transition-colors"
+            >
+              Limpiar filtros
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Grid */}
@@ -240,9 +338,17 @@ export default function SucursalesPage() {
           <p className="font-medium">No tienes sucursales aún</p>
           <p className="text-sm mt-1">Crea tu primera sucursal para comenzar</p>
         </div>
+      ) : sucursalesFiltradas.length === 0 ? (
+        <div className="text-center py-16 text-text-muted bg-white rounded-xl border border-border">
+          <Building2 size={40} className="mx-auto mb-3 opacity-20" />
+          <p className="font-medium">No se encontraron sucursales</p>
+          <p className="text-sm mt-1">
+            Intenta cambiar el nombre buscado o el estado seleccionado.
+          </p>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {sucursales.map((s) => (
+          {sucursalesFiltradas.map((s) => (
             <div
               key={s.id}
               className="bg-white rounded-xl border border-border shadow-card p-5 flex flex-col gap-4 hover:shadow-md transition-shadow"
@@ -282,7 +388,11 @@ export default function SucursalesPage() {
                     <Clock size={14} className="flex-shrink-0" />
                     <span>
                       {s.horarioApertura} – {s.horarioCierre}
-                      {s.diasOperacion && <span className="ml-1 text-xs">({s.diasOperacion})</span>}
+                      {s.diasOperacion && (
+                        <span className="ml-1 text-xs">
+                          ({formatDiasOperacionTexto(s.diasOperacion)})
+                        </span>
+                      )}
                     </span>
                   </p>
                 )}
@@ -297,14 +407,15 @@ export default function SucursalesPage() {
 
               <div className="flex items-center gap-2 pt-3 border-t border-border mt-auto">
                 <button
+                  type="button"
                   onClick={() => handleToggleSucursal(s)}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 ${
                     s.abierto
-                      ? 'bg-red-50 text-error hover:bg-red-100'
-                      : 'bg-green-50 text-primary hover:bg-green-100'
+                      ? 'bg-red-700 text-white hover:bg-red-800 focus-visible:outline-red-700'
+                      : 'bg-green-700 text-white hover:bg-green-800 focus-visible:outline-green-700'
                   }`}
                 >
-                  <Power size={14} />
+                  <Power size={14} aria-hidden="true" />
                   {s.abierto ? 'Cerrar local' : 'Abrir local'}
                 </button>
 
@@ -345,8 +456,9 @@ export default function SucursalesPage() {
               <h3 className="font-semibold text-text text-lg mb-5">{editing ? 'Editar sucursal' : 'Nueva sucursal'}</h3>
               <form onSubmit={handleSubmit} className="space-y-3">
                 <div>
-                  <label className="text-sm font-medium text-text block mb-1">Nombre *</label>
+                  <label htmlFor="sucursal-nombre" className="text-sm font-medium text-text block mb-1">Nombre *</label>
                   <input
+                    id="sucursal-nombre"
                     value={form.nombre}
                     onChange={(e) => handleChange('nombre', e.target.value)}
                     placeholder="Ej: Local Centro"
@@ -356,8 +468,9 @@ export default function SucursalesPage() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-text block mb-1">Dirección</label>
+                  <label htmlFor="sucursal-direccion" className="text-sm font-medium text-text block mb-1">Dirección</label>
                   <input
+                    id="sucursal-direccion"
                     value={form.direccion}
                     onChange={(e) => handleChange('direccion', e.target.value)}
                     placeholder="Av. Principal 123"
@@ -367,8 +480,9 @@ export default function SucursalesPage() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-text block mb-1">Teléfono</label>
+                  <label htmlFor="sucursal-telefono" className="text-sm font-medium text-text block mb-1">Teléfono</label>
                   <input
+                    id="sucursal-telefono"
                     value={form.telefono}
                     onChange={(e) => {
                       const onlyNumbers = e.target.value.replace(/\D/g, '').slice(0, 9);
@@ -385,10 +499,10 @@ export default function SucursalesPage() {
                   </p>
                 </div>
 
-                <div>
-                  <label className="text-sm font-medium text-text block mb-2">
+                <fieldset>
+                  <legend className="text-sm font-medium text-text block mb-2">
                     Días de operación *
-                  </label>
+                  </legend>
 
                   <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
                     {DIAS_OPERACION.map((dia) => {
@@ -401,7 +515,7 @@ export default function SucursalesPage() {
                           onClick={() => toggleDiaOperacion(dia.value)}
                           className={`rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${
                             selected
-                              ? 'border-primary bg-primary text-white'
+                              ? 'border-green-700 bg-green-700 text-white'
                               : 'border-border bg-white text-text-muted hover:bg-gray-50'
                           }`}
                         >
@@ -410,17 +524,19 @@ export default function SucursalesPage() {
                       );
                     })}
                   </div>
+                
 
                   <p className="text-xs text-text-muted mt-2">
                     Selecciona los días en que la sucursal atenderá.
                   </p>
-                </div>
+                </fieldset>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-sm font-medium text-text block mb-1">Apertura</label>
+                      <label htmlFor="sucursal-apertura" className="text-sm font-medium text-text block mb-1">Apertura</label>
                       <input
                         type="time"
+                        id="sucursal-apertura"
                         value={form.horarioApertura}
                         onChange={(e) => handleChange('horarioApertura', e.target.value)}
                         className="w-full border border-border rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary"
@@ -428,8 +544,9 @@ export default function SucursalesPage() {
                     </div>
 
                     <div>
-                      <label className="text-sm font-medium text-text block mb-1">Cierre</label>
+                      <label htmlFor="sucursal-cierre" className="text-sm font-medium text-text block mb-1">Cierre</label>
                       <input
+                        id="sucursal-cierre"
                         type="time"
                         value={form.horarioCierre}
                         onChange={(e) => handleChange('horarioCierre', e.target.value)}

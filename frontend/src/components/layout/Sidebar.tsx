@@ -88,15 +88,21 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             </div>
             <span className="font-bold text-text text-base">RestaurantOS</span>
           </div>
-          <button onClick={onClose} className="lg:hidden p-1.5 rounded-lg hover:bg-background transition-colors">
-            <X size={18} className="text-text-muted" />
+          <button
+            type="button"
+            onClick={onClose}
+            className="lg:hidden p-1.5 rounded-lg hover:bg-background transition-colors"
+            aria-label="Cerrar menú lateral"
+            title="Cerrar menú lateral"
+          >
+            <X size={18} className="text-text-muted" aria-hidden="true" />
           </button>
         </div>
 
         {user?.sucursal && (
           <div className="px-4 py-3 bg-green-50 border-b border-border">
-            <p className="text-xs text-text-muted font-medium uppercase tracking-wide">Sucursal activa</p>
-            <p className="text-sm font-semibold text-primary truncate">{user.sucursal.nombre}</p>
+            <p className="text-xs text-slate-700 font-medium uppercase tracking-wide">Sucursal activa</p>
+            <p className="text-sm font-semibold text-green-800 truncate">{user.sucursal.nombre}</p>
           </div>
         )}
 
@@ -109,7 +115,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               className={({ isActive }) => cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
                 isActive
-                  ? 'bg-primary text-white shadow-sm'
+                  ? 'bg-green-700 text-white shadow-sm'
                   : 'text-text-muted hover:text-text hover:bg-background'
               )}
             >

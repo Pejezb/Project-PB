@@ -330,7 +330,7 @@ export default function ReportesDuenoPage() {
                 }
                 className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
                   filtroRapido === item.key
-                    ? 'bg-primary text-white border-primary'
+                    ? 'bg-green-700 text-white border-green-700'
                     : 'bg-white text-text-muted border-border hover:bg-background'
                 }`}
               >
@@ -351,7 +351,7 @@ export default function ReportesDuenoPage() {
               type="button"
               onClick={exportarReporteCsv}
               disabled={!data}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border border-primary text-primary hover:bg-primary hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border border-green-700 text-green-700 hover:bg-green-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-green-700 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-green-700"
             >
               <Download size={15} />
               Exportar CSV
@@ -360,7 +360,7 @@ export default function ReportesDuenoPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-medium text-text-muted mb-1">
+              <label htmlFor="reporte-desde" className="block text-xs font-medium text-text-muted mb-1">
                 Desde
               </label>
               <div className="relative">
@@ -370,6 +370,7 @@ export default function ReportesDuenoPage() {
                 />
                 <input
                   type="date"
+                  id="reporte-desde"
                   value={desde}
                   max={hasta || undefined}
                   onChange={(e) => {
@@ -384,7 +385,7 @@ export default function ReportesDuenoPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-text-muted mb-1">
+              <label htmlFor="reporte-hasta" className="block text-xs font-medium text-text-muted mb-1">
                 Hasta
               </label>
               <div className="relative">
@@ -394,6 +395,7 @@ export default function ReportesDuenoPage() {
                 />
                 <input
                   type="date"
+                  id="reporte-hasta"
                   value={hasta}
                   min={desde || undefined}
                   onChange={(e) => {
@@ -408,10 +410,11 @@ export default function ReportesDuenoPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-text-muted mb-1">
+              <label htmlFor="reporte-sucursal" className="block text-xs font-medium text-text-muted mb-1">
                 Sucursal
               </label>
               <select
+                id="reporte-sucursal"
                 value={sucursalId}
                 onChange={(e) => setSucursalId(e.target.value)}
                 className="w-full bg-white border border-border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"

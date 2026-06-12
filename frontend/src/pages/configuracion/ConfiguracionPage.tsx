@@ -81,13 +81,14 @@ export default function ConfiguracionPage() {
       <div className="bg-white rounded-xl border border-border shadow-card p-6">
         <div className="flex items-center gap-2 mb-5">
           <User size={18} className="text-primary" />
-          <h3 className="font-semibold">Información personal</h3>
+          <h2 className="font-semibold">Información personal</h2>
         </div>
 
         <form onSubmit={handlePerfilSubmit} className="space-y-4">
           <div>
-            <label className="text-sm font-medium block mb-1.5">Nombre</label>
+            <label htmlFor="nombre" className="text-sm font-medium block mb-1.5">Nombre</label>
             <input
+              id="nombre"
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
               className="w-full border border-border rounded-lg px-3 py-2"
@@ -95,8 +96,9 @@ export default function ConfiguracionPage() {
           </div>
 
           <div>
-            <label className="text-sm font-medium block mb-1.5">Email</label>
+            <label htmlFor="email" className="text-sm font-medium block mb-1.5">Email</label>
             <input
+              id="email"
               value={user?.email ?? ''}
               disabled
               className="w-full border border-border rounded-lg px-3 py-2 bg-background"
@@ -104,8 +106,9 @@ export default function ConfiguracionPage() {
           </div>
 
           <div>
-            <label className="text-sm font-medium block mb-1.5">Rol</label>
+            <label htmlFor="rol" className="text-sm font-medium block mb-1.5">Rol</label>
             <input
+              id="rol"
               value={user?.rol ?? ''}
               disabled
               className="w-full border border-border rounded-lg px-3 py-2 bg-background"
@@ -131,29 +134,44 @@ export default function ConfiguracionPage() {
 
         <form onSubmit={handlePasswordSubmit} className="space-y-4">
 
-          <input
-            type="password"
-            placeholder="Contraseña actual"
-            value={passActual}
-            onChange={(e) => setPassActual(e.target.value)}
-            className="w-full border border-border rounded-lg px-3 py-2"
-          />
+          <div>
+            <label htmlFor="passActual" className="block text-sm font-medium text-text mb-1">
+              Contraseña actual
+            </label>
+            <input
+              type="password"
+              id="passActual"
+              value={passActual}
+              onChange={(e) => setPassActual(e.target.value)}
+              className="w-full border border-border rounded-lg px-3 py-2"
+            />
+          </div>
 
-          <input
-            type="password"
-            placeholder="Nueva contraseña"
-            value={passNueva}
-            onChange={(e) => setPassNueva(e.target.value)}
-            className="w-full border border-border rounded-lg px-3 py-2"
-          />
+          <div>
+            <label htmlFor="passNueva" className="block text-sm font-medium text-text mb-1">
+              Nueva contraseña
+            </label>
+            <input
+              type="password"
+              id="passNueva"
+              value={passNueva}
+              onChange={(e) => setPassNueva(e.target.value)}
+              className="w-full border border-border rounded-lg px-3 py-2"
+            />
+          </div>
 
-          <input
-            type="password"
-            placeholder="Confirmar contraseña"
-            value={passConfirm}
-            onChange={(e) => setPassConfirm(e.target.value)}
-            className="w-full border border-border rounded-lg px-3 py-2"
-          />
+          <div>
+            <label htmlFor="passConfirm" className="block text-sm font-medium text-text mb-1">
+              Confirmar contraseña
+            </label>
+            <input
+              type="password"
+              id="passConfirm"
+              value={passConfirm}
+              onChange={(e) => setPassConfirm(e.target.value)}
+              className="w-full border border-border rounded-lg px-3 py-2"
+            />
+          </div>
 
           <Button
             type="submit"
