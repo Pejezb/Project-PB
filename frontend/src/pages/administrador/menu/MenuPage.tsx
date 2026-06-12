@@ -19,6 +19,7 @@ interface Categoria {
 interface Producto {
   id: string;
   nombre: string;
+  disponible: boolean;
   descripcion: string;
   precio: number;
   categoria: {
@@ -139,6 +140,25 @@ export default function MenuPage() {
   const eliminarProducto = async (id: string) => {
     await api.delete(`/productos/${id}`);
     cargarProductos();
+  };
+
+  const cambiarEstadoProducto = async (id: string) => {
+    try {
+      await api.patch(`/productos/${id}/toggle`);
+
+      setProductos((prev) =>
+        prev.map((p) =>
+          p.id === id
+            ? {
+              ...p,
+              disponible: !p.disponible,
+            }
+            : p
+        )
+      );
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const productosFiltrados = Array.isArray(productos)
@@ -270,9 +290,47 @@ export default function MenuPage() {
                 {producto.categoria.nombre}
               </span>
 
-              <h2 className="text-lg font-bold text-text mb-2">
-                {producto.nombre}
-              </h2>
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <h2 className="text-lg font-bold text-text">
+                    {producto.nombre}
+                  </h2>
+
+                  <span
+                    className={`text-xs font-medium ${producto.disponible
+                      ? 'text-green-600'
+                      : 'text-red-500'
+                      }`}
+                  >
+                    {producto.disponible
+                      ? 'Activo'
+                      : 'Desactivado'}
+                  </span>
+                </div>
+
+                <button
+                  onClick={() =>
+                    cambiarEstadoProducto(producto.id)
+                  }
+                  className={`
+                    relative w-12 h-7 rounded-full transition
+                    ${producto.disponible
+                      ? 'bg-green-500'
+                      : 'bg-gray-300'
+                    }`}
+                >
+                  <span
+                    className={`
+                      absolute top-1 left-1
+                      w-5 h-5 bg-white rounded-full
+                      transition-transform
+                      ${producto.disponible
+                        ? 'translate-x-5'
+                        : ''
+                      }`}
+                  />
+                </button>
+              </div>
 
               <p className="text-sm text-text-muted mb-4 line-clamp-2">
                 {producto.descripcion}
