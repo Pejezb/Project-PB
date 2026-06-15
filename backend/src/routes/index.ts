@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authMiddleware, roleMiddleware } from '../middleware/auth.middleware';
-import { login, me, logout, loginLimiter } from '../controllers/auth.controller';
+import { login, me, logout } from '../controllers/auth.controller';
 import { getSucursales, getSucursalById, createSucursal, updateSucursal, toggleSucursal, deleteSucursal } from '../controllers/sucursales.controller';
 import { getUsuarios, createUsuario, updateUsuario, deleteUsuario, updateMe, changeMyPassword } from '../controllers/usuarios.controller';
 import { getDashboardDueno, getDashboardSucursal } from '../controllers/dashboard.controller';
@@ -14,7 +14,7 @@ import { marcarPedidoListo, obtenerPedidosCocina } from '../controllers/pedidos-
 
 const router = Router();
 // Auth
-router.post('/auth/login', login, loginLimiter);
+router.post('/auth/login', login);
 router.get('/auth/me', authMiddleware, me);
 router.post('/auth/logout', authMiddleware, logout);
 
@@ -50,9 +50,9 @@ router.get('/reportes', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), getRep
 router.get('/reportes/exportar', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), exportarReporteExcel);
 
 // Mesas
-router.get('/mesas', authMiddleware, roleMiddleware('ADMIN', 'MESERO'), getMesas);
-router.post('/mesas', authMiddleware, roleMiddleware('ADMIN'), crearMesa);
-router.patch('/mesas/:id', authMiddleware, roleMiddleware('ADMIN'), actualizarMesa);
+router.get('/mesas', authMiddleware, roleMiddleware('DUENO', 'ADMIN', 'MESERO'), getMesas);
+router.post('/mesas', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), crearMesa);
+router.patch('/mesas/:id', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), actualizarMesa);
 
 // Menu
 router.post('/categorias', authMiddleware, roleMiddleware('ADMIN', 'DUENO'), crearCategoria);

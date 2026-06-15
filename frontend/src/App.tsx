@@ -36,6 +36,7 @@ import MesasPage from './pages/administrador/Mesas/MesasPage';
 import PedidosPage from './pages/administrador/pedidos/PedidosPage';
 
 import { useAuthStore } from './store/authStore';
+import { useVistaAdministradorStore } from './store/vistaAdministradorStore';
 import type { AuthUser } from './types';
 
 const qc = new QueryClient({
@@ -76,6 +77,32 @@ function RequireRole({
   return <>{children}</>;
 }
 
+function RequireAdminOrDuenoVistaAdministrador({
+  user,
+  children,
+}: {
+  user: AuthUser | null;
+  children: React.ReactNode;
+}) {
+  const {
+    activo: vistaAdministradorActiva,
+    sucursalActivaId,
+  } = useVistaAdministradorStore();
+
+  const isAdmin = user?.rol === 'ADMIN';
+
+  const isDuenoEnVistaAdministrador =
+    user?.rol === 'DUENO' &&
+    vistaAdministradorActiva &&
+    Boolean(sucursalActivaId);
+
+  if (!user || (!isAdmin && !isDuenoEnVistaAdministrador)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <>{children}</>;
+}
+
 function HomeRedirect({
   user,
 }: {
@@ -107,8 +134,10 @@ function AppRoutes() {
     useState(false);
 
   useEffect(() => {
-    initAuth().finally(() => setAuthReady(true));
-  }, []);
+    initAuth().finally(() =>
+      setAuthReady(true)
+    );
+  }, [initAuth]);
 
   useEffect(() => {
     const unsubscribe =
@@ -291,12 +320,9 @@ function AppRoutes() {
           <Route
             path="/mesas"
             element={
-              <RequireRole
-                user={user}
-                roles={['ADMIN']}
-              >
+              <RequireAdminOrDuenoVistaAdministrador user={user}>
                 <MesasPage />
-              </RequireRole>
+              </RequireAdminOrDuenoVistaAdministrador>
             }
           />
 
