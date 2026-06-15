@@ -6,6 +6,7 @@ import { Badge } from '../../components/ui/Badge';
 import { usuariosService } from '../../services/usuarios.service';
 import { sucursalesService } from '../../services/sucursales.service';
 import { useAuthStore } from '../../store/authStore';
+import { useVistaAdministradorStore } from '../../store/vistaAdministradorStore';
 import type { Usuario } from '../../types';
 import toast from 'react-hot-toast';
 
@@ -62,11 +63,20 @@ export default function UsuariosPage() {
   const qc = useQueryClient();
   const { user } = useAuthStore();
 
+  const {
+    activo: vistaAdministradorActiva,
+    sucursalActivaId,
+    sucursalActivaNombre,
+  } = useVistaAdministradorStore();
+
   const isDueno = user?.rol === 'DUENO';
   const isAdmin = user?.rol === 'ADMIN';
 
+  const isDuenoEnVistaAdministrador =
+    isDueno && vistaAdministradorActiva && Boolean(sucursalActivaId);
+
   const canViewSucursal = isDueno || isAdmin;
-  const canEditSucursal = isDueno;
+  const canEditSucursal = isDueno && !isDuenoEnVistaAdministrador;
   const canManageRoles = isDueno;
   const canAssignAdminRole = isDueno;
 
@@ -77,11 +87,13 @@ export default function UsuariosPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [rolFilter, setRolFilter] = useState('TODOS');
   const [estadoFilter, setEstadoFilter] = useState('TODOS');
+  const [sucursalFilter, setSucursalFilter] = useState('TODAS');
 
 
   const { data: usuarios = [], isLoading } = useQuery({
-    queryKey: ['usuarios', user?.sucursalId ?? 'all'],
+    queryKey: ['usuarios', user?.rol, user?.sucursalId ?? 'all'],
     queryFn: () => usuariosService.getAll(),
+    enabled: Boolean(user),
   });
 
   const usuariosVisibles = useMemo(() => {
@@ -92,6 +104,8 @@ export default function UsuariosPage() {
     const search = searchTerm.trim().toLowerCase();
 
     return usuariosVisibles.filter((usuario) => {
+        const usuarioSucursalId = usuario.sucursalId ?? usuario.sucursal?.id;
+
       const matchesSearch =
         !search ||
         usuario.nombre.toLowerCase().includes(search) ||
@@ -106,9 +120,16 @@ export default function UsuariosPage() {
         (estadoFilter === 'ACTIVO' && usuario.activo) ||
         (estadoFilter === 'INACTIVO' && !usuario.activo);
 
-      return matchesSearch && matchesRol && matchesEstado;
+      const matchesSucursal =
+        isDuenoEnVistaAdministrador
+          ? usuarioSucursalId === sucursalActivaId
+          : !isDueno ||
+            sucursalFilter === 'TODAS' ||
+            usuarioSucursalId === sucursalFilter;
+
+      return matchesSearch && matchesRol && matchesEstado && matchesSucursal;
     });
-  }, [usuariosVisibles, searchTerm, rolFilter, estadoFilter]);
+  }, [usuariosVisibles, searchTerm, rolFilter, estadoFilter, sucursalFilter, isDueno, isDuenoEnVistaAdministrador, sucursalActivaId]);
 
   const { data: sucursales = [] } = useQuery({
     queryKey: ['sucursales'],
@@ -143,7 +164,7 @@ export default function UsuariosPage() {
         activo: form.activo,
       }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['usuarios', user?.sucursalId ?? 'all'] });
+      qc.invalidateQueries({ queryKey: ['usuarios'] });
       toast.success('Usuario creado');
       closeModal();
     },
@@ -169,7 +190,7 @@ export default function UsuariosPage() {
       ...(form.password ? { password: form.password } : {}),
     }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['usuarios', user?.sucursalId ?? 'all'] });
+      qc.invalidateQueries({ queryKey: ['usuarios'] });
       toast.success('Usuario actualizado');
       closeModal();
     },
@@ -190,7 +211,9 @@ export default function UsuariosPage() {
     setIsModalEditing(true);
     setForm({
       ...emptyForm,
-      sucursalId: isDueno ? '' : user?.sucursalId ?? '',
+      sucursalId: isDuenoEnVistaAdministrador 
+        ? sucursalActivaId ?? ''
+        : isDueno ? '' : user?.sucursalId ?? '',
     });
     setShowModal(true);
   };
@@ -284,9 +307,14 @@ export default function UsuariosPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-text">Usuarios</h2>
+          <h2 className="text-lg font-semibold text-text">
+            {isDuenoEnVistaAdministrador ? 'Personal' : 'Usuarios'}
+          </h2>
+
           <p className="text-sm text-text-muted">
-            {usuariosVisibles.length} usuario{usuariosVisibles.length !== 1 ? 's' : ''} registrado{usuariosVisibles.length !== 1 ? 's' : ''}
+            {isDuenoEnVistaAdministrador
+              ? `Personal de ${sucursalActivaNombre}`
+              : `${usuariosVisibles.length} usuario${usuariosVisibles.length !== 1 ? 's' : ''} registrado${usuariosVisibles.length !== 1 ? 's' : ''}`}
           </p>
         </div>
         <Button onClick={openNew}><Plus size={16} /> Nuevo usuario</Button>
@@ -297,7 +325,7 @@ export default function UsuariosPage() {
         <div className="space-y-2">
           {[1, 2, 3].map(i => <div key={i} className="bg-white rounded-xl border border-border p-4 animate-pulse h-16" />)}
         </div>
-      ) : usuariosVisibles.length === 0 ? (
+      ) : usuarios.length === 0 ? (
         <div className="text-center py-16 text-text-muted">
           <UserCircle size={40} className="mx-auto mb-3 opacity-20" />
           <p className="font-medium">No hay usuarios aún</p>
@@ -306,7 +334,7 @@ export default function UsuariosPage() {
       ) : (
         <>
           <div className="bg-white rounded-xl border border-border shadow-card p-4 mb-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">              <div>
+            <div className={`grid grid-cols-1 md:grid-cols-2 ${isDueno ? 'xl:grid-cols-4' : 'xl:grid-cols-3'} gap-3`}>             <div>
               <label
                 htmlFor="buscar-usuario"
                 className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1"
@@ -361,21 +389,44 @@ export default function UsuariosPage() {
                   <option value="INACTIVO">Inactivos</option>
                 </select>
               </div>
+              {isDueno && !isDuenoEnVistaAdministrador && (
+                <div>
+                  <label
+                    htmlFor="filtro-sucursal-usuario"
+                    className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1"
+                  >
+                    Sucursal
+                  </label>
+                  <select
+                    id="filtro-sucursal-usuario"
+                    value={sucursalFilter}
+                    onChange={(e) => setSucursalFilter(e.target.value)}
+                    className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  >
+                    <option value="TODAS">Todas las sucursales</option>
+                    {sucursales.map((sucursal) => (
+                      <option key={sucursal.id} value={sucursal.id}>
+                        {sucursal.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center justify-between mt-4 pt-3 border-t border-border">
               <p className="text-sm text-text-muted">
-                Mostrando <span className="font-semibold text-text">{usuariosFiltrados.length}</span> de{' '}
-                <span className="font-semibold text-text">{usuariosVisibles.length}</span> usuarios
+                Mostrando <span className="font-semibold text-text">{usuariosFiltrados.length}</span> usuario{usuariosFiltrados.length !== 1 ? 's' : ''}
               </p>
 
-              {(searchTerm || rolFilter !== 'TODOS' || estadoFilter !== 'TODOS') && (
+              {(searchTerm || rolFilter !== 'TODOS' || estadoFilter !== 'TODOS' || sucursalFilter !== 'TODAS') && (
                 <button
                   type="button"
                   onClick={() => {
                     setSearchTerm('');
                     setRolFilter('TODOS');
                     setEstadoFilter('TODOS');
+                    setSucursalFilter('TODAS');
                   }}
                   className="inline-flex items-center justify-center rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-dark transition-colors"
                 >

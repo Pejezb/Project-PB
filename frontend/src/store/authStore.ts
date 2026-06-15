@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { AuthUser } from '../types';
 import { api } from '../services/api';
+import { useVistaAdministradorStore } from './vistaAdministradorStore';
 
 interface AuthState {
   user: AuthUser | null;
@@ -22,9 +23,6 @@ export const useAuthStore = create<AuthState>((set) => ({
   setUser: (user) => set({ user }),
 
   initAuth: async () => {
-    const token = localStorage.getItem('token');
-    if (!token) return set({ user: null });
-
     try {
       const { data } = await api.get('/auth/me');
       set({ user: data });
@@ -35,21 +33,9 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   logout: async () => {
     try {
-      const csrf = document.cookie
-        .split('; ')
-        .find(r => r.startsWith('csrf-token='))
-        ?.split('=')[1];
-
-      await api.post(
-        '/auth/logout',
-        {},
-        {
-          headers: {
-            'CSRF-Token': csrf!,
-          },
-        }
-      );
+      await api.post('/auth/logout');
     } finally {
+      useVistaAdministradorStore.getState().salirVistaAdministrador();
       set({ user: null });
       localStorage.setItem('AUTH_LOGOUT_EVENT', Date.now().toString());
     }
@@ -62,6 +48,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   listenToAuthEvents: () => {
     const handleStorageChange = async (e: StorageEvent) => {
       if (e.key === 'AUTH_LOGOUT_EVENT') {
+        useVistaAdministradorStore.getState().salirVistaAdministrador();
         set({ user: null });
       }
       if (e.key === 'AUTH_LOGIN_EVENT') {
