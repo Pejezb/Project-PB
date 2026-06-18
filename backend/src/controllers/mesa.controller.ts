@@ -187,3 +187,51 @@ export const actualizarMesa = async (req: Request, res: Response): Promise<void>
     });
   }
 };
+
+export const eliminarMesa = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    const sucursalId = await obtenerSucursalOperativa(req);
+
+    if (!sucursalId) {
+      res.status(400).json({
+        message: "Sucursal no encontrada o no autorizada",
+      });
+      return;
+    }
+
+    const mesa = await prisma.mesa.findFirst({
+      where: {
+        id,
+        sucursalId,
+      },
+    });
+
+    if (!mesa) {
+      res.status(404).json({
+        message: "Mesa no encontrada",
+      });
+      return;
+    }
+
+    await prisma.mesa.delete({
+      where: {
+        id,
+      },
+    });
+
+    res.json({
+      message: "Mesa eliminada correctamente",
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message: "Error eliminando mesa",
+    });
+  }
+};
