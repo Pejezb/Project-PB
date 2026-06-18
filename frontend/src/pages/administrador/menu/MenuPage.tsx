@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Download } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import {
   Plus,
   Search,
@@ -87,16 +88,44 @@ export default function MenuPage() {
   }, []);
 
   const crearCategoria = async () => {
-    if (!nuevaCategoria.trim()) return;
+    try {
+      if (!nuevaCategoria.trim()) {
+        toast.error('Ingresa un nombre de categoría');
+        return;
+      }
 
-    await api.post('/categorias', {
-      nombre: nuevaCategoria,
-      sucursalId: 'sucursal-1',
-    });
+      await api.post('/categorias', {
+        nombre: nuevaCategoria,
+        sucursalId: 'sucursal-1',
+      });
 
-    setNuevaCategoria('');
-    setModalCategoria(false);
-    cargarCategorias();
+      toast.success('Categoría creada correctamente');
+
+      setNuevaCategoria('');
+      setModalCategoria(false);
+      cargarCategorias();
+    } catch (error) {
+      toast.error('Error al crear la categoría');
+    }
+  };
+
+  const eliminarCategoria = async (id: string) => {
+    try {
+      console.log('Eliminando categoria:', id);
+      console.log('URL:', `/categorias/${id}`);
+
+      await api.delete(`/categorias/${id}`);
+
+      toast.success('Categoría eliminada correctamente');
+
+      cargarCategorias();
+    } catch (error: any) {
+      console.log(error.response?.status);
+      console.log(error.response?.data);
+      console.error(error);
+
+      toast.error('No se pudo eliminar la categoría');
+    }
   };
 
   const crearProducto = async () => {
@@ -109,8 +138,8 @@ export default function MenuPage() {
     const precio = Number(nuevoProducto.precio);
     if (!nuevoProducto.precio || isNaN(precio)) {
       errores.push('Ingresa un precio válido');
-    } else if (precio <= 0) {
-      errores.push('El precio debe ser mayor a 0');
+    } else if (precio <= 0 || precio >= 10000) {
+      errores.push('El precio debe ser mayor a 0 y menor a 10000');
     }
 
     if (!nuevoProducto.categoriaId) {
@@ -146,7 +175,7 @@ export default function MenuPage() {
       setModalProducto(false);
       cargarProductos();
     } catch (error) {
-      setErroresProducto(['Error al crear el producto']);
+      toast.error('Error al crear el producto');
       console.error(error);
     }
   };
@@ -160,8 +189,14 @@ export default function MenuPage() {
       errores.push('El nombre del producto es obligatorio');
     }
 
-    if (productoEditando.precio <= 0 || isNaN(productoEditando.precio)) {
+    const precio = Number(productoEditando.precio);
+
+    if (isNaN(precio)) {
+      errores.push('Ingresa un precio válido');
+    } else if (precio <= 0) {
       errores.push('El precio debe ser mayor a 0');
+    } else if (precio >= 10000) {
+      errores.push('El precio debe ser menor a 10000');
     }
 
     if (errores.length > 0) {
@@ -184,14 +219,21 @@ export default function MenuPage() {
       setProductoEditando(null);
       cargarProductos();
     } catch (error) {
-      setErroresEdicion(['Error al actualizar el producto']);
+      toast.error('Error al actualizar el producto');
       console.error(error);
     }
   };
 
   const eliminarProducto = async (id: string) => {
-    await api.delete(`/productos/${id}`);
-    cargarProductos();
+    try {
+      await api.delete(`/productos/${id}`);
+
+      toast.success('Producto eliminado correctamente');
+
+      cargarProductos();
+    } catch (error) {
+      toast.error('No se pudo eliminar el producto');
+    }
   };
 
   const cambiarEstadoProducto = async (id: string) => {
@@ -500,12 +542,37 @@ export default function MenuPage() {
             <input
               type="text"
               placeholder="Nombre de la categoría"
+              maxLength={20}
               value={nuevaCategoria}
               onChange={(e) =>
-                setNuevaCategoria(e.target.value)
+                setNuevaCategoria(
+                  e.target.value
+                    .toLowerCase()
+                    .replace(/[^a-záéíóúñ\s]/g, '')
+                )
               }
-              className="w-full border border-border rounded-xl px-4 py-3 mb-6 outline-none"
+              className="w-full border border-border rounded-xl px-4 py-3 mb-4 outline-none"
             />
+
+            <div className="max-h-48 overflow-y-auto space-y-2 mb-6">
+              {categorias.map((categoria) => (
+                <div
+                  key={categoria.id}
+                  className="flex items-center justify-between border rounded-xl p-3"
+                >
+                  <span className="font-medium">
+                    {categoria.nombre}
+                  </span>
+
+                  <button
+                    onClick={() => eliminarCategoria(categoria.id)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              ))}
+            </div>
 
             <div className="flex justify-end gap-3">
               <button
@@ -600,15 +667,28 @@ export default function MenuPage() {
 
                 <input
                   type="text"
+                  maxLength={30}
                   value={nuevoProducto.nombre}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    let valor = e.target.value
+                      .replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '')
+                      .toLowerCase();
+
+                    valor =
+                      valor.charAt(0).toUpperCase() +
+                      valor.slice(1);
+
                     setNuevoProducto({
                       ...nuevoProducto,
-                      nombre: e.target.value,
-                    })
-                  }
+                      nombre: valor,
+                    });
+                  }}
                   className="w-full border border-border rounded-xl px-4 py-3 outline-none"
                 />
+
+                <p className="text-xs text-gray-500 mt-1">
+                  {nuevoProducto.nombre.length}/30
+                </p>
               </div>
 
               <div>
@@ -617,18 +697,27 @@ export default function MenuPage() {
                 </label>
 
                 <input
-                  type="number"
-                  min="0.01"
-                  step="0.01"
+                  type="text"
+                  maxLength={9}
                   value={nuevoProducto.precio}
                   onChange={(e) => {
-                    const valor = e.target.value;
+                    let valor = e.target.value;
+
+                    valor = valor.replace(/[^0-9.]/g, '');
+
+                    const partes = valor.split('.');
+
+                    if (partes.length > 2) return;
+
+                    if (partes[1]?.length > 2) return;
+
+                    if (Number(valor) >= 10000) return;
+
                     setNuevoProducto({
                       ...nuevoProducto,
                       precio: valor,
                     });
                   }}
-                  placeholder="0.00"
                   className="w-full border border-border rounded-xl px-4 py-3 outline-none"
                 />
               </div>
@@ -700,18 +789,25 @@ export default function MenuPage() {
                 <label className="text-sm font-medium mb-2 block">
                   Descripción breve
                 </label>
-
                 <textarea
                   rows={4}
+                  maxLength={100}
                   value={nuevoProducto.descripcion || ''}
                   onChange={(e) =>
                     setNuevoProducto({
                       ...nuevoProducto,
-                      descripcion: e.target.value,
+                      descripcion: e.target.value.replace(
+                        /[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g,
+                        ''
+                      ),
                     })
                   }
                   className="w-full border border-border rounded-xl px-4 py-3 outline-none resize-none"
                 />
+
+                <p className="text-xs text-gray-500 mt-1">
+                  {(nuevoProducto.descripcion || '').length}/100
+                </p>
               </div>
             </div>
 
@@ -809,15 +905,28 @@ export default function MenuPage() {
 
                 <input
                   type="text"
+                  maxLength={30}
                   value={productoEditando.nombre}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    let valor = e.target.value
+                      .replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '')
+                      .toLowerCase();
+
+                    valor =
+                      valor.charAt(0).toUpperCase() +
+                      valor.slice(1);
+
                     setProductoEditando({
                       ...productoEditando,
-                      nombre: e.target.value,
-                    })
-                  }
+                      nombre: valor,
+                    });
+                  }}
                   className="w-full border border-border rounded-xl px-4 py-3 outline-none"
                 />
+
+                <p className="text-xs text-gray-500 mt-1">
+                  {productoEditando.nombre.length}/30
+                </p>
               </div>
 
               <div>
@@ -826,16 +935,29 @@ export default function MenuPage() {
                 </label>
 
                 <input
-                  type="number"
-                  min="0.01"
-                  step="0.01"
+                  type="text"
+                  maxLength={9}
                   value={productoEditando.precio}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    let valor = e.target.value;
+
+                    valor = valor.replace(/[^0-9.]/g, '');
+
+                    const partes = valor.split('.');
+
+                    if (partes.length > 2) return;
+
+                    if (partes[1]?.length > 2) return;
+
+                    if (Number(valor) >= 10000) return;
+
                     setProductoEditando({
                       ...productoEditando,
-                      precio: Number(e.target.value),
-                    })
-                  }
+                      precio: valor === ''
+                        ? 0
+                        : Number(valor),
+                    });
+                  }}
                   className="w-full border border-border rounded-xl px-4 py-3 outline-none"
                 />
               </div>
@@ -909,18 +1031,25 @@ export default function MenuPage() {
                 <label className="text-sm font-medium mb-2 block">
                   Descripción breve
                 </label>
-
                 <textarea
                   rows={4}
+                  maxLength={100}
                   value={productoEditando.descripcion || ''}
                   onChange={(e) =>
                     setProductoEditando({
                       ...productoEditando,
-                      descripcion: e.target.value,
+                      descripcion: e.target.value.replace(
+                        /[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g,
+                        ''
+                      ),
                     })
                   }
                   className="w-full border border-border rounded-xl px-4 py-3 outline-none resize-none"
                 />
+
+                <p className="text-xs text-gray-500 mt-1">
+                  {(productoEditando.descripcion || '').length}/100
+                </p>
               </div>
             </div>
 

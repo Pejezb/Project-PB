@@ -6,7 +6,7 @@ import { getUsuarios, createUsuario, updateUsuario, deleteUsuario, updateMe, cha
 import { getDashboardDueno, getDashboardSucursal } from '../controllers/dashboard.controller';
 import { getAsistencias, toggleAsistencia } from '../controllers/asistencias.controller';
 import { crearMesa, getMesas, actualizarMesa, eliminarMesa } from '../controllers/mesa.controller';
-import { crearCategoria, listarCategorias, crearProducto, listarProductos, actualizarProducto, eliminarProducto, obtenerProducto, toggleDisponibilidad } from '../controllers/menu.controller';
+import { crearCategoria, listarCategorias, eliminarCategoria, crearProducto, listarProductos, actualizarProducto, eliminarProducto, obtenerProducto, toggleDisponibilidad } from '../controllers/menu.controller';
 import { getReporteDueno, getReportes, exportarReporteExcel } from '../controllers/reportes.controller';
 import { getPedidosAdmin } from '../controllers/pedidos-admin.controller';
 import { getPedidosActivos, crearPedido, agregarItems, marcarEntregado, cobrarPedido, cancelarPedido } from '../controllers/pedidos-mesero.controller';
@@ -58,6 +58,7 @@ router.delete('/mesas/:id', authMiddleware, roleMiddleware('DUENO', 'ADMIN'), el
 // Menu
 router.post('/categorias', authMiddleware, roleMiddleware('ADMIN', 'DUENO'), crearCategoria);
 router.get('/categorias', authMiddleware, roleMiddleware('ADMIN', 'DUENO', 'MESERO'), listarCategorias);
+router.delete('/categorias/:id', authMiddleware, roleMiddleware('ADMIN', 'DUENO'), eliminarCategoria);
 router.post('/productos', authMiddleware, roleMiddleware('ADMIN', 'DUENO'), crearProducto);
 router.get('/productos', authMiddleware, roleMiddleware('ADMIN', 'DUENO', 'MESERO'), listarProductos);
 

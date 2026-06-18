@@ -44,6 +44,53 @@ export const listarCategorias = async (req: Request, res: Response) => {
   }
 };
 
+export const eliminarCategoria = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const { id } = req.params;
+
+    const categoria = await prisma.categoria.findUnique({
+      where: { id },
+      include: {
+        _count: {
+          select: {
+            productos: true,
+          },
+        },
+      },
+    });
+
+    if (!categoria) {
+      return res.status(404).json({
+        message: 'Categoría no encontrada',
+      });
+    }
+
+    if (categoria._count.productos > 0) {
+      return res.status(400).json({
+        message:
+          'No se puede eliminar una categoría con productos asociados',
+      });
+    }
+
+    await prisma.categoria.delete({
+      where: { id },
+    });
+
+    return res.json({
+      message: 'Categoría eliminada correctamente',
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      message: 'Error eliminando categoría',
+    });
+  }
+};
+
 export const crearProducto = async (req: Request, res: Response) => {
   try {
     const {
@@ -53,7 +100,7 @@ export const crearProducto = async (req: Request, res: Response) => {
       imagen,
       categoriaId,
       sucursalId,
-      tipo, 
+      tipo,
     } = req.body;
 
     if (!nombre || !precio || !categoriaId || !sucursalId) {
@@ -68,7 +115,7 @@ export const crearProducto = async (req: Request, res: Response) => {
         imagen,
         categoriaId,
         sucursalId,
-        requiereCocina: tipo !== 'COMPLEMENTO', 
+        requiereCocina: tipo !== 'COMPLEMENTO',
       },
     });
 
