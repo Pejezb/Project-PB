@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import { Plus, Pencil, Users, X, Loader2 } from 'lucide-react';
 import { api } from '../../../services/api';
 import { useAuthStore } from '../../../store/authStore';
@@ -6,8 +7,8 @@ import { useVistaAdministradorStore } from '../../../store/vistaAdministradorSto
 
 interface Mesa {
   id: string;
-  numero: number;
-  capacidad: number;
+  numero: number | '';
+  capacidad: number | '';
   estado: 'LIBRE' | 'OCUPADA' | 'RESERVADA';
   sucursalId: string;
 }
@@ -93,8 +94,20 @@ export default function MesasPage() {
         nuevaMesa.capacidad
       );
 
-      if (!numero || !capacidad)
+      if (!numero || !capacidad) {
+        toast.error('Completa todos los campos');
         return;
+      }
+
+      if (numero < 1 || numero > 99) {
+        toast.error('El número de mesa debe estar entre 1 y 99');
+        return;
+      }
+
+      if (capacidad < 1 || capacidad > 12) {
+        toast.error('La capacidad debe ser entre 1 y 12 personas');
+        return;
+      }
 
       const { data } =
         await api.post<Mesa>(
@@ -119,6 +132,7 @@ export default function MesasPage() {
       });
 
       setModalNuevaMesa(false);
+      toast.success('Mesa agregada correctamente');
 
     } catch (error: any) {
       console.error(
@@ -130,6 +144,27 @@ export default function MesasPage() {
   const actualizarMesa = async () => {
     try {
       if (!mesaEditando) return;
+      if (
+        mesaEditando.numero === '' ||
+        mesaEditando.numero < 1 ||
+        mesaEditando.numero > 99
+      ) {
+        toast.error(
+          'El número de mesa debe estar entre 1 y 99'
+        );
+        return;
+      }
+
+      if (
+        mesaEditando.capacidad === '' ||
+        mesaEditando.capacidad < 1 ||
+        mesaEditando.capacidad > 12
+      ) {
+        toast.error(
+          'La capacidad debe ser entre 1 y 12 personas'
+        );
+        return;
+      }
 
       const { data } =
         await api.patch<Mesa>(
@@ -154,11 +189,45 @@ export default function MesasPage() {
 
       setMesaEditando(null);
       setModalEditarMesa(false);
+      toast.success('Mesa actualizada correctamente');
 
     } catch (error: any) {
       console.error(
         error.response?.data ||
         error.message
+      );
+    }
+  };
+
+  const eliminarMesa = async () => {
+    try {
+      if (!mesaEditando) return;
+
+      await api.delete(
+        `/mesas/${mesaEditando.id}`
+      );
+
+      setMesas((prev) =>
+        prev.filter(
+          (m) => m.id !== mesaEditando.id
+        )
+      );
+
+      setMesaEditando(null);
+      setModalEditarMesa(false);
+
+      toast.success(
+        'Mesa eliminada correctamente'
+      );
+
+    } catch (error: any) {
+      console.error(
+        error.response?.data ||
+        error.message
+      );
+
+      toast.error(
+        'No se pudo eliminar la mesa'
       );
     }
   };
@@ -285,22 +354,48 @@ export default function MesasPage() {
             </div>
 
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               placeholder="Número"
               value={nuevaMesa.numero}
-              onChange={e =>
-                setNuevaMesa({ ...nuevaMesa, numero: e.target.value })
-              }
+              onChange={(e) => {
+                const value = e.target.value;
+
+                if (!/^\d*$/.test(value)) return;
+
+                if (
+                  value === '' ||
+                  (Number(value) >= 1 && Number(value) <= 99)
+                ) {
+                  setNuevaMesa({
+                    ...nuevaMesa,
+                    numero: value,
+                  });
+                }
+              }}
               className="w-full border border-border rounded-xl px-4 py-3 mb-3"
             />
 
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               placeholder="Capacidad"
               value={nuevaMesa.capacidad}
-              onChange={e =>
-                setNuevaMesa({ ...nuevaMesa, capacidad: e.target.value })
-              }
+              onChange={(e) => {
+                const value = e.target.value;
+
+                if (!/^\d*$/.test(value)) return;
+
+                if (
+                  value === '' ||
+                  (Number(value) >= 1 && Number(value) <= 12)
+                ) {
+                  setNuevaMesa({
+                    ...nuevaMesa,
+                    capacidad: value,
+                  });
+                }
+              }}
               className="w-full border border-border rounded-xl px-4 py-3 mb-5"
             />
 
@@ -326,34 +421,65 @@ export default function MesasPage() {
             </div>
 
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               value={mesaEditando.numero}
-              onChange={e =>
-                setMesaEditando({
-                  ...mesaEditando,
-                  numero: Number(e.target.value),
-                })
-              }
+              onChange={(e) => {
+                const value = e.target.value;
+
+                if (!/^\d*$/.test(value)) return;
+
+                if (
+                  value === '' ||
+                  (Number(value) >= 1 && Number(value) <= 99)
+                ) {
+                  setMesaEditando({
+                    ...mesaEditando!,
+                    numero:
+                      value === ''
+                        ? ''
+                        : Number(value),
+                  });
+                }
+              }}
               className="w-full border border-border rounded-xl px-4 py-3 mb-3"
             />
 
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               value={mesaEditando.capacidad}
-              onChange={e =>
-                setMesaEditando({
-                  ...mesaEditando,
-                  capacidad: Number(e.target.value),
-                })
-              }
+              onChange={(e) => {
+                const value = e.target.value;
+
+                if (!/^\d*$/.test(value)) return;
+
+                if (
+                  value === '' ||
+                  (Number(value) >= 1 && Number(value) <= 12)
+                ) {
+                  setMesaEditando({
+                    ...mesaEditando!,
+                    capacidad:
+                      value === ''
+                        ? ''
+                        : Number(value),
+                  });
+                }
+              }}
               className="w-full border border-border rounded-xl px-4 py-3 mb-5"
             />
 
             <button
               onClick={actualizarMesa}
-              className="bg-primary text-white w-full py-3 rounded-xl"
-            >
+              className="bg-primary text-white w-full py-3 rounded-xl">
               Guardar cambios
+            </button>
+            <button
+              onClick={eliminarMesa}
+              className="mt-3 w-full py-3 rounded-xl border border-red-300 text-red-600 hover:bg-red-50 transition"
+            >
+              Eliminar mesa
             </button>
           </div>
         </div>
