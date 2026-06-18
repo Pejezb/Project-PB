@@ -138,8 +138,8 @@ export default function MenuPage() {
     const precio = Number(nuevoProducto.precio);
     if (!nuevoProducto.precio || isNaN(precio)) {
       errores.push('Ingresa un precio válido');
-    } else if (precio <= 0) {
-      errores.push('El precio debe ser mayor a 0');
+    } else if (precio <= 0 || precio >= 10000) {
+      errores.push('El precio debe ser mayor a 0 y menor a 10000');
     }
 
     if (!nuevoProducto.categoriaId) {
@@ -189,8 +189,14 @@ export default function MenuPage() {
       errores.push('El nombre del producto es obligatorio');
     }
 
-    if (productoEditando.precio <= 0 || isNaN(productoEditando.precio)) {
+    const precio = Number(productoEditando.precio);
+
+    if (isNaN(precio)) {
+      errores.push('Ingresa un precio válido');
+    } else if (precio <= 0) {
       errores.push('El precio debe ser mayor a 0');
+    } else if (precio >= 10000) {
+      errores.push('El precio debe ser menor a 10000');
     }
 
     if (errores.length > 0) {
@@ -661,15 +667,28 @@ export default function MenuPage() {
 
                 <input
                   type="text"
+                  maxLength={30}
                   value={nuevoProducto.nombre}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    let valor = e.target.value
+                      .replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '')
+                      .toLowerCase();
+
+                    valor =
+                      valor.charAt(0).toUpperCase() +
+                      valor.slice(1);
+
                     setNuevoProducto({
                       ...nuevoProducto,
-                      nombre: e.target.value,
-                    })
-                  }
+                      nombre: valor,
+                    });
+                  }}
                   className="w-full border border-border rounded-xl px-4 py-3 outline-none"
                 />
+
+                <p className="text-xs text-gray-500 mt-1">
+                  {nuevoProducto.nombre.length}/30
+                </p>
               </div>
 
               <div>
@@ -679,20 +698,26 @@ export default function MenuPage() {
 
                 <input
                   type="text"
-                  maxLength={5}
+                  maxLength={9}
                   value={nuevoProducto.precio}
                   onChange={(e) => {
-                    const valor = e.target.value.replace(
-                      /[^0-9.]/g,
-                      ''
-                    );
+                    let valor = e.target.value;
+
+                    valor = valor.replace(/[^0-9.]/g, '');
+
+                    const partes = valor.split('.');
+
+                    if (partes.length > 2) return;
+
+                    if (partes[1]?.length > 2) return;
+
+                    if (Number(valor) >= 10000) return;
 
                     setNuevoProducto({
                       ...nuevoProducto,
                       precio: valor,
                     });
                   }}
-                  placeholder="0.00"
                   className="w-full border border-border rounded-xl px-4 py-3 outline-none"
                 />
               </div>
@@ -779,6 +804,7 @@ export default function MenuPage() {
                   }
                   className="w-full border border-border rounded-xl px-4 py-3 outline-none resize-none"
                 />
+
                 <p className="text-xs text-gray-500 mt-1">
                   {(nuevoProducto.descripcion || '').length}/100
                 </p>
@@ -879,15 +905,28 @@ export default function MenuPage() {
 
                 <input
                   type="text"
+                  maxLength={30}
                   value={productoEditando.nombre}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    let valor = e.target.value
+                      .replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '')
+                      .toLowerCase();
+
+                    valor =
+                      valor.charAt(0).toUpperCase() +
+                      valor.slice(1);
+
                     setProductoEditando({
                       ...productoEditando,
-                      nombre: e.target.value,
-                    })
-                  }
+                      nombre: valor,
+                    });
+                  }}
                   className="w-full border border-border rounded-xl px-4 py-3 outline-none"
                 />
+
+                <p className="text-xs text-gray-500 mt-1">
+                  {productoEditando.nombre.length}/30
+                </p>
               </div>
 
               <div>
@@ -896,16 +935,29 @@ export default function MenuPage() {
                 </label>
 
                 <input
-                  type="number"
-                  min="0.01"
-                  step="0.01"
+                  type="text"
+                  maxLength={9}
                   value={productoEditando.precio}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    let valor = e.target.value;
+
+                    valor = valor.replace(/[^0-9.]/g, '');
+
+                    const partes = valor.split('.');
+
+                    if (partes.length > 2) return;
+
+                    if (partes[1]?.length > 2) return;
+
+                    if (Number(valor) >= 10000) return;
+
                     setProductoEditando({
                       ...productoEditando,
-                      precio: Number(e.target.value),
-                    })
-                  }
+                      precio: valor === ''
+                        ? 0
+                        : Number(valor),
+                    });
+                  }}
                   className="w-full border border-border rounded-xl px-4 py-3 outline-none"
                 />
               </div>
@@ -979,18 +1031,25 @@ export default function MenuPage() {
                 <label className="text-sm font-medium mb-2 block">
                   Descripción breve
                 </label>
-
                 <textarea
                   rows={4}
+                  maxLength={100}
                   value={productoEditando.descripcion || ''}
                   onChange={(e) =>
                     setProductoEditando({
                       ...productoEditando,
-                      descripcion: e.target.value,
+                      descripcion: e.target.value.replace(
+                        /[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g,
+                        ''
+                      ),
                     })
                   }
                   className="w-full border border-border rounded-xl px-4 py-3 outline-none resize-none"
                 />
+
+                <p className="text-xs text-gray-500 mt-1">
+                  {(productoEditando.descripcion || '').length}/100
+                </p>
               </div>
             </div>
 
