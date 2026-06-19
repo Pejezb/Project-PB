@@ -185,14 +185,18 @@ export default function PedidosActivosPage() {
                       <CheckCircle2 size={16} /> Marcar entregado
                     </button>
                   )}
-                  {esEntregado && (
-                    <button
-                      onClick={() => handleCobrar(pedido)}
-                      className="flex items-center justify-center gap-1.5 w-full py-2.5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 active:scale-95 transition-all"
-                    >
-                      <CreditCard size={16} /> Cobrar
-                    </button>
-                  )}
+                  <button
+                    onClick={() => handleCobrar(pedido)}
+                    disabled={!esEntregado}
+                    className={cn(
+                      'flex items-center justify-center gap-1.5 w-full py-2.5 rounded-xl text-sm font-semibold transition-all',
+                      esEntregado
+                        ? 'bg-primary text-white hover:bg-primary/90 active:scale-95'
+                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    )}
+                  >
+                    <CreditCard size={16} /> Cobrar
+                  </button>
                   <div className="flex gap-2">
                     <button
                       onClick={() => navigate('/mesero/pedido', {
