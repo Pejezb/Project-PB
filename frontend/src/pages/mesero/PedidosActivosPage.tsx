@@ -28,6 +28,7 @@ export default function PedidosActivosPage() {
   const qc = useQueryClient();
   const [modalCobro, setModalCobro] = useState<Pedido | null>(null);
   const [metodoPago, setMetodoPago] = useState('Efectivo');
+  const [modalCancelar, setModalCancelar] = useState<Pedido | null>(null);
 
   const { data: pedidos = [], isLoading } = useQuery({
     queryKey: ['pedidos-activos'],
@@ -106,6 +107,7 @@ export default function PedidosActivosPage() {
             const esComplemento = pedido.items.filter((i) => !i.producto?.requiereCocina);
             const estCfg = ESTADO_CONFIG[pedido.estado] ?? { label: pedido.estado, cls: 'bg-gray-100 text-gray-600' };
             const esListo = pedido.estado === 'LISTO';
+            const esEntregado = pedido.estado === 'ENTREGADO';
 
             return (
               <div
@@ -183,6 +185,14 @@ export default function PedidosActivosPage() {
                       <CheckCircle2 size={16} /> Marcar entregado
                     </button>
                   )}
+                  {esEntregado && (
+                    <button
+                      onClick={() => handleCobrar(pedido)}
+                      className="flex items-center justify-center gap-1.5 w-full py-2.5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 active:scale-95 transition-all"
+                    >
+                      <CreditCard size={16} /> Cobrar
+                    </button>
+                  )}
                   <div className="flex gap-2">
                     <button
                       onClick={() => navigate('/mesero/pedido', {
@@ -193,13 +203,7 @@ export default function PedidosActivosPage() {
                       <PlusCircle size={14} /> Añadir
                     </button>
                     <button
-                      onClick={() => handleCobrar(pedido)}
-                      className="flex-1 flex items-center justify-center gap-1 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 active:scale-95 transition-all"
-                    >
-                      <CreditCard size={14} /> Cobrar
-                    </button>
-                    <button
-                      onClick={() => { if (confirm('¿Cancelar este pedido?')) cancelarMutation.mutate(pedido.id); }}
+                      onClick={() => setModalCancelar(pedido)}
                       className="p-2 rounded-xl border border-red-200 text-error hover:bg-red-50 active:scale-95 transition-all"
                       title="Cancelar pedido"
                     >
@@ -210,6 +214,40 @@ export default function PedidosActivosPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Modal cancelar */}
+      {modalCancelar && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-end md:items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-lg w-full max-w-sm p-6">
+            <h3 className="font-semibold text-text text-lg mb-1">Cancelar pedido</h3>
+            <p className="text-sm text-text-muted mb-6">
+              ¿Estás seguro de cancelar{' '}
+              <span className="font-semibold text-text">
+                {modalCancelar.tipo === 'PARA_LLEVAR' ? 'Para llevar' : `Mesa ${modalCancelar.mesa?.numero}`}
+              </span>
+              {' · '}#{modalCancelar.numero}? Esta acción no se puede deshacer.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setModalCancelar(null)}
+                className="flex-1 py-3 rounded-xl border border-border text-text-muted text-sm hover:bg-background transition-colors"
+              >
+                No, volver
+              </button>
+              <button
+                onClick={() => {
+                  cancelarMutation.mutate(modalCancelar.id);
+                  setModalCancelar(null);
+                }}
+                disabled={cancelarMutation.isPending}
+                className="flex-1 py-3 rounded-xl bg-red-500 text-white text-sm font-semibold hover:bg-red-600 disabled:opacity-60 active:scale-95 transition-all"
+              >
+                {cancelarMutation.isPending ? 'Cancelando...' : 'Sí, cancelar'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
