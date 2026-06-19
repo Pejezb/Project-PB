@@ -154,7 +154,9 @@ enum TipoPedido {
 
 enum EstadoPedido {
   PENDIENTE
+  EN_COCINA
   LISTO
+  ENTREGADO
   PAGADO
   CANCELADO
 }
