@@ -144,7 +144,7 @@ export async function marcarEntregado(req: Request, res: Response): Promise<void
 
   const actualizado = await prisma.pedido.update({
     where: { id },
-    data: { estado: EstadoPedido.LISTO },
+    data: { estado: EstadoPedido.ENTREGADO },
     include: { mesa: true, items: { include: { producto: true } } },
   });
 
