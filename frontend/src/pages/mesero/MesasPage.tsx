@@ -8,9 +8,9 @@ import type { Mesa, Pedido } from '../../types';
 import { cn } from '../../utils/cn';
 
 const ESTADO_CONFIG = {
-  LIBRE:     { label: 'Libre',    bg: 'bg-green-50',  border: 'border-green-200', badge: 'bg-green-100 text-green-700',  dot: 'bg-green-500' },
-  OCUPADA:   { label: 'Ocupada',  bg: 'bg-orange-50', border: 'border-orange-200', badge: 'bg-orange-100 text-orange-700', dot: 'bg-orange-500' },
-  RESERVADA: { label: 'Reservada',bg: 'bg-gray-50',   border: 'border-gray-200',  badge: 'bg-gray-100 text-gray-600',    dot: 'bg-gray-400' },
+  LIBRE:     { label: 'Libre',    bg: 'bg-green-50',  border: 'border-green-200', badge: 'bg-green-100 text-green-800',  dot: 'bg-green-600' },
+  OCUPADA:   { label: 'Ocupada',  bg: 'bg-orange-50', border: 'border-orange-200', badge: 'bg-orange-100 text-orange-800', dot: 'bg-orange-600' },
+  RESERVADA: { label: 'Reservada',bg: 'bg-gray-50',   border: 'border-gray-200',  badge: 'bg-gray-100 text-gray-700',    dot: 'bg-gray-500' },
 };
 
 export default function MesasPageMesero() {
@@ -133,7 +133,7 @@ export default function MesasPageMesero() {
                     'w-full py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95',
                     esLibre
                       ? 'bg-primary text-white hover:bg-primary/90'
-                      : 'bg-orange-500 text-white hover:bg-orange-600'
+                      : 'bg-orange-700 text-white hover:bg-orange-800'
                   )}
                 >
                   {esLibre ? 'Asignar pedido' : 'Añadir a pedido'}

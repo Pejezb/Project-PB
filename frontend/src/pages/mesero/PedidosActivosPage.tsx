@@ -8,10 +8,10 @@ import { cn } from '../../utils/cn';
 import toast from 'react-hot-toast';
 
 const ESTADO_CONFIG: Record<string, { label: string; cls: string }> = {
-  PENDIENTE:  { label: 'Pendiente',  cls: 'bg-yellow-100 text-yellow-700' },
-  EN_COCINA:  { label: 'En cocina',  cls: 'bg-orange-100 text-orange-700' },
-  LISTO:      { label: '¡Listo!',    cls: 'bg-green-100 text-green-700 animate-pulse' },
-  ENTREGADO:  { label: 'Entregado',  cls: 'bg-blue-100 text-blue-700' },
+  PENDIENTE:  { label: 'Pendiente',  cls: 'bg-yellow-100 text-yellow-800' },
+  EN_COCINA:  { label: 'En cocina',  cls: 'bg-orange-100 text-orange-800' },
+  LISTO:      { label: '¡Listo!',    cls: 'bg-green-100 text-green-800 animate-pulse' },
+  ENTREGADO:  { label: 'Entregado',  cls: 'bg-blue-100 text-blue-800' },
 };
 
 const METODOS_PAGO = ['Efectivo', 'Tarjeta', 'Yape', 'Plin'];
@@ -192,7 +192,7 @@ export default function PedidosActivosPage() {
                       'flex items-center justify-center gap-1.5 w-full py-2.5 rounded-xl text-sm font-semibold transition-all',
                       esEntregado
                         ? 'bg-primary text-white hover:bg-primary/90 active:scale-95'
-                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'bg-gray-100 text-gray-600 cursor-not-allowed'
                     )}
                   >
                     <CreditCard size={16} /> Cobrar

@@ -9,7 +9,7 @@ export default {
         surface:   '#ffffff',
         background:'#f9fafb',
         border:    '#e5e7eb',
-        text:      { DEFAULT: '#111827', muted: '#6b7280', light: '#9ca3af' },
+        text:      { DEFAULT: '#111827', muted: '#4b5563', light: '#6b7280' },
         success:   '#16a34a',
         warning:   '#d97706',
         error:     '#dc2626',
